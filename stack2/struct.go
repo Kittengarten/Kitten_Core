@@ -14,9 +14,8 @@ const (
 type (
 	// 叠猫猫配置
 	config struct {
-		DefaultWeight int `yaml:"defaultweight"` // 默认体重（0.1kg 数）
-		GapTime       int `yaml:"gaptime"`       // 每千克体重的冷却时间（小时数）
-		MinGapTime    int `yaml:"mingaptime"`    // 最小冷却时间（小时数）
+		GapTime    int `yaml:"gaptime"`    // 每千克体重的冷却时间（小时数）
+		MinGapTime int `yaml:"mingaptime"` // 最小冷却时间（小时数）
 	}
 
 	data []meow // 叠猫猫数据

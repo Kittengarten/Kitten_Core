@@ -44,8 +44,7 @@ func init() {
 		return
 	}
 	// 初始化叠猫猫配置文件
-	err := kitten.InitFile(&configFile, `defaultweight: 50 # 默认体重（0.1kg 数）
-gaptime: 1        # 每千克体重的冷却时间（小时数）
+	err := kitten.InitFile(&configFile, `gaptime: 1        # 每千克体重的冷却时间（小时数）
 mingaptime: 1     # 最小冷却时间（小时数）`)
 	if nil != err {
 		zap.Error(err)
@@ -107,7 +106,7 @@ func (d *data) in(ctx *zero.Ctx, en *control.Engine) {
 		c = k.Time.Sub(time.Unix(ctx.Event.Time, 0))
 		return u == k.ID && !k.Status && 0 < c
 	}) {
-		kitten.SendWithImageFail(ctx, `还需要休息 %.2f 小时才能加入喵！`, c.Hours())
+		kitten.SendWithImageFail(ctx, `还需要休息 %s 小时才能加入喵！`, c.Round(time.Second))
 		return
 	}
 	if slices.ContainsFunc(*d, func(k meow) bool { return u == k.ID && k.Status }) {
@@ -119,10 +118,11 @@ func (d *data) in(ctx *zero.Ctx, en *control.Engine) {
 	switch i {
 	case -1:
 		// 如果是首次叠猫猫
+		name := kitten.QQ(u).GetTitleCardOrNickName(ctx)
 		k = meow{
 			ID:     u,
-			Name:   kitten.QQ(u).GetTitleCardOrNickName(ctx),
-			Weight: stackConfig.DefaultWeight,
+			Name:   name,
+			Weight: len(name),
 			Time:   time.Unix(ctx.Event.Time, 0),
 		}
 	default:

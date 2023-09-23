@@ -1,30 +1,33 @@
 package kitten
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
-	"github.com/wdvxdr1123/ZeroBot/message"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
+
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // FilePath 文件路径构建
-func FilePath(elem ...Path) Path {
-	s := make([]string, len(elem))
+func FilePath[T string | Path](elem ...T) Path {
+	var (
+		l = len(elem)
+		s = make([]string, l, l)
+	)
 	for k := range elem {
-		s[k] = elem[k].String()
+		s[k] = string(elem[k])
 	}
-	return Path(filepath.Join([]string(s)...))
+	return Path(filepath.Join(s...))
 }
 
 // Read 文件读取
-func (path Path) Read() (data []byte) {
-	data, err := os.ReadFile(path.String())
-	if !Check(err) {
-		zap.S().Errorf("打开文件 %s 失败了喵！\n%v", path, err)
-	}
-	return
+func (path Path) Read() ([]byte, error) {
+	return os.ReadFile(path.String())
 }
 
 /*
@@ -32,104 +35,128 @@ Write 文件写入
 
 如文件不存在会尝试新建
 */
-func (path Path) Write(data []byte) {
-	if e, err := path.Exists(); !e {
-		// 如果文件或文件夹不存在，或不确定是否存在
-		if Check(err) {
-			// 如果文件不存在，新建该文件所在的文件夹；如果文件夹不存在，新建该文件夹本身
-			if !Check(os.MkdirAll(filepath.Dir(path.String()), 0755)) {
-				zap.S().Errorf("新建 %s 失败喵！\n%v", path, err)
-			}
-		} else {
-			// 文件或文件夹不确定是否存在
-			zap.S().Errorf("写入时不确定 %s 存在喵！\n%v", path, err)
-		}
-	} else {
-		if err = os.WriteFile(path.String(), data, 0666); !Check(err) {
-			zap.S().Errorf("写入文件 %s 失败了喵！\n%v", path, err)
-		}
+func (path Path) Write(data []byte) (err error) {
+	// 检查文件夹是否存在，不存在则创建
+	if err = os.MkdirAll(filepath.Dir(path.String()), 0755); nil != err {
+		return
 	}
+	// 写入文件
+	return os.WriteFile(path.String(), data, 0644)
 }
 
-/*
-Exists 判断文件是否存在
-
-不确定存在的情况下报错
-*/
+// Exists 判断文件或文件夹是否存在
 func (path Path) Exists() (bool, error) {
 	_, err := os.Stat(path.String())
-	if Check(err) {
-		// 当 err 为空，文件或文件夹存在
+	if nil == err {
+		// 文件或文件夹存在
 		return true, nil
 	}
-	if os.IsNotExist(err) {
-		// os.IsNotExist(err)为 true，文件或文件夹不存在
+	if errors.Is(err, fs.ErrNotExist) {
+		// 文件或文件夹不存在
 		return false, nil
 	}
-	// 其它类型，不确定是否存在
+	// 其它错误
 	return false, err
 }
 
 // （私有）判断路径是否文件夹
-func (path Path) isDir() bool {
-	if s, err := os.Stat(path.String()); Check(err) {
-		return s.IsDir()
-	} else {
-		zap.S().Errorf("识别 %s 失败了喵！\n%v", path, err)
-	}
-	return false
+func (path Path) isDir() (bool, error) {
+	info, err := os.Stat(path.String())
+	return info.IsDir(), err
 }
 
 // LoadPath 加载文件中保存的相对路径或绝对路径
-func (path Path) LoadPath() Path {
+func (path Path) LoadPath() (Path, error) {
 	data, err := os.ReadFile(path.String())
-	if !Check(err) {
-		zap.S().Errorf("打开文件 %s 失败了喵！\n%v", path, err)
+	if nil != err {
+		return path, err
 	}
-	if filepath.IsAbs(string(data)) {
-		return Path(`file://`) + FilePath(Path(data))
+	if data = bytes.TrimSpace(data); filepath.IsAbs(string(data)) {
+		return Path(`file://`) + FilePath(Path(data)), nil
 	}
-	return FilePath(Path(data))
+	return FilePath(Path(data)), nil
 }
 
 // GetImage 从图片的相对/绝对路径，或相对/绝对路径文件中保存的相对/绝对路径加载图片
-func (path Path) GetImage(name Path) message.MessageSegment {
+func (path Path) GetImage(name Path) (message.MessageSegment, error) {
 	if filepath.IsAbs(path.String()) {
-		if path.isDir() {
-			return message.Image(`file://` + FilePath(path, name).String())
+		isDir, err := path.isDir()
+		if nil != err {
+			return message.MessageSegment{}, err
 		}
-		return message.Image(`file://` + FilePath(path.LoadPath(), name).String())
+		if isDir {
+			return message.Image(fmt.Sprint(`file://`, FilePath(path, name))), nil
+		}
+		p, err := path.LoadPath()
+		return message.Image(fmt.Sprint(`file://`, FilePath(p, name))), err
 	}
-	if path.isDir() {
-		return message.Image(FilePath(path, name).String())
+	if isDir, err := path.isDir(); isDir {
+		return message.Image(FilePath(path, name).String()), err
 	}
-	return message.Image(FilePath(path.LoadPath(), name).String())
+	p, err := path.LoadPath()
+	return message.Image(FilePath(p, name).String()), err
 }
 
-/*
-Path 类型实现 Stringer 接口，并将路径规范化
-*/
+// Path 类型实现 Stringer 接口，并将路径规范化
 func (path Path) String() string {
 	return filepath.Clean(filepath.Join(string(path)))
 }
 
-// InitFile 初始化文本文件，要求传入路径事先规范化过
-func InitFile(name Path, text string) {
-	e, err := name.Exists()
-	if !Check(err) {
-		zap.S().Errorf("初始化时不确定 %s 存在喵！\n%v", name, err)
-		return
+/*
+InitFile 初始化文本文件，要求传入路径事先规范化过
+
+如果路径所指向的文件实际位于上级文件夹中，会相应地修改路径
+*/
+func InitFile[T string | Path](name *T, text string) error {
+	var (
+		n      = Path(*name)
+		e, err = n.Exists()
+	)
+	// 如果发生错误或文件存在，直接返回
+	if e || nil != err {
+		return err
 	}
-	// 如果文件不存在，初始化
-	if !e {
-		name.Write([]byte(text))
+	// 如果文件不存在
+	if !filepath.IsAbs(n.String()) {
+		// 如果不是绝对路径，搜索其上一级路径
+		n = FilePath(`..`, n)
+		e, err := n.Exists()
+		if nil != err {
+			return err
+		}
+		if e {
+			// 如果在上一级目录中存在，则将路径修改为上一级
+			*name = T(n)
+			return nil
+		}
 	}
+	// 如果文件不存在 && (是绝对路径 || 不是绝对路径但在上一级目录不存在)，初始化该文件
+	return n.Write([]byte(text))
 }
 
-// LoadMainConfig 加载主配置
-func LoadMainConfig() (config Config) {
-	if err := yaml.Unmarshal(path.Read(), &config); !Check(err) {
-		zap.S().Fatalf("打开 %s 失败了喵！\n%v", path, err)
+/*
+从文件获取路径
+
+d 为默认值
+*/
+func (p Path) GetPath(d Path) Path {
+	return Path(p.GetString(d.String()))
+}
+
+/*
+从文件获取字符串或路径
+
+d 为默认值
+*/
+func (p Path) GetString(d string) string {
+	if err := InitFile(&p, d); nil != err {
+		zap.S().Errorf("初始化文件 %s 失败了喵！\n%v", p, err)
+		return d
 	}
-	return
+	f, err := os.ReadFile(p.String())
+	if nil != err {
+		zap.S().Errorf("打开文件 %s 失败了喵！\n%v", p, err)
+		return d
+	}
+	return string(f)
 }

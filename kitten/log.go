@@ -1,6 +1,7 @@
 package kitten
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 
 func init() {
 	// 启用日志格式
-	LogConfigInit(Configs)
+	LogConfigInit(config)
 }
 
 // LogConfigInit 日志配置初始化
@@ -27,11 +28,11 @@ func LogConfigInit(config Config) {
 			LineEnding:    zapcore.DefaultLineEnding,
 			EncodeLevel:   zapcore.CapitalColorLevelEncoder, // 指定颜色
 			EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-				enc.AppendString("[" + t.Format(`2006.1.2 15:04:05`) + "]")
+				enc.AppendString(fmt.Sprintf(`[%s]`, t.Format(Layout)))
 			}, // 时间格式
 			EncodeDuration: zapcore.SecondsDurationEncoder,
 			EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
-				enc.AppendString("[" + caller.TrimmedPath() + "]")
+				enc.AppendString(fmt.Sprintf(`[%s]`, caller.TrimmedPath()))
 			}, // 路径编码器
 			EncodeName: zapcore.FullNameEncoder,
 		}
@@ -45,39 +46,27 @@ func LogConfigInit(config Config) {
 		})
 		encoder = zapcore.NewConsoleEncoder(encoderConfig) // 获取编码器，NewJSONEncoder() 输出 json 格式，NewConsoleEncoder() 输出普通文本格式
 		core    = zapcore.NewCore(encoder, zapcore.NewMultiWriteSyncer(zapcore.Lock(WrappedWriteSyncer{os.Stdout}), logWriteSyncer), config.Log.GetLogLevel())
-		log_    = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2)) // 配置日志记录器
+		log     = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2)) // 配置日志记录器
 	)
 	defer func() {
-		if err := log_.Sync(); !Check(err) {
-			log_.Sugar().Errorf("日志刷新失败喵！\n%v", err)
-		} else {
-			log_.Info(`日志刷新成功喵！`)
+		if err := log.Sync(); nil != err {
+			log.Sugar().Error(`日志刷新失败喵！`, err)
+			return
 		}
+		log.Info(`日志刷新成功喵！`)
 	}()
-	zap.ReplaceGlobals(log_)
-	zap.RedirectStdLog(log_)
+	zap.ReplaceGlobals(log)
+	zap.RedirectStdLog(log)
 }
 
 // GetLogLevel 从日志配置获取日志等级
 func (lc LogConfig) GetLogLevel() zapcore.Level {
-	switch lc.Level {
-	case zap.FatalLevel.String():
-		return zap.FatalLevel
-	case zap.PanicLevel.String():
-		return zap.PanicLevel
-	case zap.DPanicLevel.String():
-		return zap.DPanicLevel
-	case zap.ErrorLevel.String():
-		return zap.ErrorLevel
-	case zap.WarnLevel.String():
-		return zap.WarnLevel
-	case zap.InfoLevel.String():
-		return zap.InfoLevel
-	case zap.DebugLevel.String():
-		return zap.DebugLevel
-	default:
+	level, err := zap.ParseAtomicLevel(lc.Level)
+	if nil != err {
+		zap.Error(err)
 		return zap.InfoLevel
 	}
+	return level.Level()
 }
 
 type WrappedWriteSyncer struct {

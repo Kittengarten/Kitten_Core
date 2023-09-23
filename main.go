@@ -2,13 +2,34 @@
 package main
 
 import (
-	// WebUI，不需要使用可以注释
-	webctrl "github.com/FloatTech/zbputils/control/web"
+	// 内置库
+	"runtime/debug"
+
+	// KittenCore 的核心库
+	"github.com/Kittengarten/KittenCore/kitten"
+
+	// 以下为核心依赖
+	"github.com/FloatTech/floatbox/process"
+	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/driver"
 	"go.uber.org/zap"
 
-	// 以下为外部插件
+	// 以下为内部插件
+	// _ "github.com/Kittengarten/KittenCore/auth"    // 黑名单控制插件
+	// _ "github.com/Kittengarten/KittenCore/draw"    // 牌堆
+	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
+	// _ "github.com/Kittengarten/KittenCore/essence" // 精华消息
+	_ "github.com/Kittengarten/KittenCore/perf"  // 查看 XX
+	_ "github.com/Kittengarten/KittenCore/sfacg" // SF 轻小说报更
+	_ "github.com/Kittengarten/KittenCore/stack" // 叠猫猫
+
+	// 群管
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/manager"
-	// _ "github.com/Kittengarten/KittenCore/plugin/kokomi"
+
+	// 定时指令触发器
+	_ "github.com/FloatTech/zbputils/job"
+
+	// 以下为外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_false"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"
@@ -60,52 +81,40 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/word_count"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"
 
+	// _ "github.com/Kittengarten/KittenCore/plugin/kokomi"
+
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply"
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus"
 
-	// 以下为内部插件
-	// _ "github.com/Kittengarten/KittenCore/draw"
-	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
-	// _ "github.com/Kittengarten/KittenCore/essence"
-	_ "github.com/Kittengarten/KittenCore/perf"  // 查看 XX
-	_ "github.com/Kittengarten/KittenCore/sfacg" // SF 轻小说报更
-	_ "github.com/Kittengarten/KittenCore/stack" // 叠猫猫
-
-	// 以下为核心依赖
-	"github.com/FloatTech/floatbox/process"
-	zero "github.com/wdvxdr1123/ZeroBot"
-	"github.com/wdvxdr1123/ZeroBot/driver"
-
-	// KittenCore 的核心库
-	"github.com/Kittengarten/KittenCore/kitten"
-
-	// 官方库
-	"runtime/debug"
+	// WebUI，不需要使用可以注释
+	webctrl "github.com/FloatTech/zbputils/control/web"
 )
+
+var config = kitten.GetMainConfig() // 主配置
 
 func init() {
 	// 启用 WebUI
-	go webctrl.RunGui(kitten.Configs.WebUI.URL)
+	go webctrl.RunGui(config.WebUI.URL)
 }
 
 func main() {
 	// 处理 panic，防止程序崩溃
 	defer func() {
-		if err := recover(); !kitten.Check(err) {
-			zap.S().Errorf("主函数有 Bug 喵！\n%v", err)
+		if err := recover(); nil != err {
+			zap.S().Error(`主函数有 Bug 喵！`, err)
 			debug.PrintStack()
 		}
 	}()
 	zero.RunAndBlock(&zero.Config{
-		NickName:      kitten.Configs.NickName,
-		CommandPrefix: kitten.Configs.CommandPrefix,
-		SuperUsers:    kitten.Configs.SuperUsers,
+		NickName:      config.NickName,
+		CommandPrefix: config.CommandPrefix,
+		SuperUsers:    config.SuperUsers,
 		Driver: []zero.Driver{
 			&driver.WSClient{
 				// OneBot 正向 WS 默认使用 6700 端口
-				Url:         kitten.Configs.WebSocket.URL,
-				AccessToken: kitten.Configs.WebSocket.AccessToken,
+				Url:         config.WebSocket.URL,
+				AccessToken: config.WebSocket.AccessToken,
 			},
 		},
 	}, process.GlobalInitMutex.Unlock)

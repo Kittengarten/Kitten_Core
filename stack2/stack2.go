@@ -89,7 +89,8 @@ mingaptime: 1     # 最小冷却时间（小时数）`)
 		case `加入`:
 			d.in(ctx, engine)
 		case `查看`:
-			d.view(ctx)
+			m := d.getStack()
+			m.view(ctx)
 		default:
 			ctx.Send(help)
 		}
@@ -124,38 +125,37 @@ func (d *data) in(ctx *zero.Ctx, en *control.Engine) {
 	}
 	dn := d.getNoStack()
 	*d = d.getStack()
+	dr := slices.Clone(*d)
 	var r strings.Builder
 	r.WriteString(`叠猫猫失败，杂鱼～杂鱼～`)
 	r.WriteByte('\n')
 	switch n := d.getStackResult(ctx, k); n {
-	case 0:
-		// 如果没有猫猫摔下来，叠猫猫初步成功
-		if h := d.getPressResult(ctx, k); 0 >= h {
-			// 如果没有压坏猫猫，叠猫猫成功
-			k.Status = true
-			kitten.SendTextOf(ctx, true, `叠猫猫成功，目前处于队列中第 %d 位喵～`, 1+len(*d))
-		} else {
+	case 0: // 如果没有猫猫摔下来，叠猫猫初步成功
+		p := d.getPressResult(ctx, k)
+		if 0 != p {
 			// 压坏了别的猫猫
 			r.WriteString(`有 %d 只猫猫被压坏了喵！`)
 			r.WriteByte('\n')
 			r.WriteString(`你在约 %.2f 小时内无法加入叠猫猫。`)
 			r.WriteByte('\n')
-			exit(ctx, &k, press, h)
-			e := (*d)[len(*d)-h:]
+			exit(ctx, &k, press, p)
+			e := dr[:p]
 			r.WriteString(e.toString())
-			kitten.SendWithImage(ctx, kitten.Path(`杂鱼.png`), r.String(), h, float64(k.Weight*stackConfig.GapTime)/10)
+			kitten.SendWithImage(ctx, kitten.Path(`杂鱼.png`), r.String(), p, float64(k.Weight*stackConfig.GapTime)/10)
+			break
 		}
-	case -1:
-		// 如果平地摔
+		// 如果没有压坏猫猫，叠猫猫成功
+		k.Status = true
+		kitten.SendTextOf(ctx, true, `叠猫猫成功，目前处于队列中第 %d 位喵～`, 1+len(*d))
+	case -1: // 如果平地摔
 		r.WriteString(`你平地摔了喵！需要休息约 %.2f 小时。`)
 		kitten.SendWithImage(ctx, kitten.Path(`杂鱼.png`), r.String(), float64(k.Weight*stackConfig.GapTime)/10)
 		exit(ctx, &k, flat, 0)
-	default:
-		// 如果叠猫猫失败，有猫猫摔下来
+	default: // 如果叠猫猫失败，有猫猫摔下来
 		r.WriteString(`上面 %d 只猫猫摔下来了喵！需要休息一段时间。`)
 		r.WriteByte('\n')
 		exit(ctx, &k, fall, len(*d))
-		e := (*d)[n:]
+		e := dr[len(dr)-n:]
 		r.WriteString(e.toString())
 		kitten.SendWithImage(ctx, kitten.Path(`杂鱼.png`), r.String(), n)
 	}
@@ -186,11 +186,11 @@ func (d *data) getNoStack() data {
 // 查看叠猫猫
 func (d *data) view(ctx *zero.Ctx) {
 	s := d.getStack()
-	if 0 < len(s) {
-		kitten.SendTextOf(ctx, true, `【叠猫猫队列】%s`, s.toString())
-	} else {
+	if 0 >= len(s) {
 		kitten.SendTextOf(ctx, true, "【叠猫猫队列】\n暂时没有猫猫哦")
+		return
 	}
+	kitten.SendTextOf(ctx, true, `【叠猫猫队列】%s`, s.toString())
 }
 
 // 叠猫猫数据文件存储

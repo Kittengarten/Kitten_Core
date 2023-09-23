@@ -8,13 +8,13 @@ import (
 	// KittenCore 的核心库
 	"github.com/Kittengarten/KittenCore/kitten"
 
-	// 以下为核心依赖
+	// 核心依赖
 	"github.com/FloatTech/floatbox/process"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 	"go.uber.org/zap"
 
-	// 以下为内部插件
+	// 内部插件
 	// _ "github.com/Kittengarten/KittenCore/auth"    // 黑名单控制插件
 	// _ "github.com/Kittengarten/KittenCore/draw"    // 牌堆
 	_ "github.com/Kittengarten/KittenCore/eekda" // XX 今天吃什么
@@ -29,7 +29,7 @@ import (
 	// 定时指令触发器
 	_ "github.com/FloatTech/zbputils/job"
 
-	// 以下为外部插件
+	// 外部插件
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ahsai"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_false"
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aipaint"

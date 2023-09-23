@@ -111,7 +111,7 @@ func DoNotKnow(ctx *zero.Ctx) {
 // GetTitleCardOrNickName 从 QQ 获取【头衔】群昵称或昵称
 func (u QQ) GetTitleCardOrNickName(ctx *zero.Ctx) string {
 	// 修剪后的昵称
-	name := CleanAll(ctx.GetStrangerInfo(int64(u), true).Get(`nickname`).String(), false)
+	name := CleanAll(ctx.GetStrangerInfo(int64(u), true).Get(`nickname`).Str, false)
 	if 0 >= ctx.Event.GroupID {
 		// 不是群聊，直接返回昵称
 		return name
@@ -125,8 +125,8 @@ func (u QQ) GetTitleCardOrNickName(ctx *zero.Ctx) string {
 		// 如果头衔存在，则添加实心方头括号
 		title = fmt.Sprintf(`【%s】`, title)
 	}
-	// 获取群昵称
-	if card := gmi.Get(`card`).Str; `` != card {
+	// 获取修剪后的群昵称
+	if card := CleanAll(gmi.Get(`card`).Str, false); `` != card {
 		// 如果不为空，返回【头衔】群昵称
 		return fmt.Sprint(title, card)
 	}

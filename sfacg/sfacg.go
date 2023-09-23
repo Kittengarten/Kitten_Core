@@ -5,233 +5,271 @@ import (
 	"cmp"
 	"fmt"
 	"runtime/debug"
+	"slices"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
+	"github.com/FloatTech/floatbox/process"
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
-
-	"github.com/Kittengarten/KittenCore/kitten"
 )
 
 const (
-	// ReplyServiceName 插件名
-	ReplyServiceName     = `SFACG`
-	brief                = `SF 轻小说报更`
-	configFile           = `config.yaml` // 配置文件名
-	ag                   = `参数`
-	commandNovel         = `小说`
-	commandUpdateTest    = `更新测试`
-	commandUpdatePreview = `更新预览`
-	commandAddUpadte     = `添加报更`
-	commandCancelUpadte  = `取消报更`
-	commandQueryUpadte   = `查询报更`
+	replyServiceName = `sfacg` // 插件名
+	brief            = `SF 轻小说报更`
+	configFile       = `config.yaml` // 配置文件名
+	ag               = `参数`
+	cNovel           = `小说`
+	cUpdateTest      = `更新测试`
+	cUpdatePreview   = `更新预览`
+	cAddUpadte       = `添加报更`
+	cCancelUpadte    = `取消报更`
+	cQueryUpadte     = `查询报更`
+	without          = `这里没有添加小说报更喵～`
+)
+
+var (
+	config = kitten.GetMainConfig() // 主配置
+	cu     chan books               // 报更更新的信号
 )
 
 func init() {
 	var (
-		cpf  = kitten.Configs.CommandPrefix
-		help = strings.Join([]string{`发送`,
-			fmt.Sprintf(`%s%s [%s]，可获取信息`, cpf, commandNovel, ag),
-			fmt.Sprintf(`%s%s [%s]，可测试报更功能`, cpf, commandUpdateTest, ag),
-			fmt.Sprintf(`%s%s [%s]，可预览更新内容`, cpf, commandUpdatePreview, ag),
-			fmt.Sprintf(`%s%s [%s]，可添加小说自动报更`, cpf, commandAddUpadte, ag),
-			fmt.Sprintf(`%s%s [%s]，可取消小说自动报更`, cpf, commandCancelUpadte, ag),
-			fmt.Sprintf(`%s%s，可查询当前小说自动报更`, cpf, commandQueryUpadte),
-		}, "\n")
+		cpf  = config.CommandPrefix
+		help = fmt.Sprintf(`%s%s [%s]，可获取信息
+%s%s [%s] // 可测试报更功能
+%s%s [%s] // 可预览更新内容
+%s%s // 可查询当前小说自动报更
+————
+管理员可用：
+%s%s [%s] // 可添加小说自动报更
+%s%s [%s] // 可取消小说自动报更`,
+			cpf, cNovel, ag,
+			cpf, cUpdateTest, ag,
+			cpf, cUpdatePreview, ag,
+			cpf, cQueryUpadte,
+			cpf, cAddUpadte, ag,
+			cpf, cCancelUpadte, ag)
 		// 注册插件
-		engine = control.Register(ReplyServiceName, &ctrl.Options[*zero.Ctx]{
+		engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 			DisableOnDefault:  false,
 			Brief:             brief,
 			Help:              help,
-			PrivateDataFolder: `sfacg`,
+			PrivateDataFolder: replyServiceName,
 		}).ApplySingle(ctxext.DefaultSingle)
+		lbg = ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup // 群内共通限速器
 	)
 
 	go track(engine)
 
 	// 测试小说报更功能
-	engine.OnCommand(`更新测试`).SetBlock(true).
-		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
-		var (
-			novel     = getNovel(ctx)
-			report, _ = novel.update()
-		)
-		ctx.SendChain(message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report))
+	engine.OnCommand(cUpdateTest).SetBlock(true).Limit(lbg).Handle(func(ctx *zero.Ctx) {
+		nv, err := getNovel(ctx)
+		if nil != err {
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
+		}
+		report, _ := nv.update()
+		kitten.SendMessage(ctx, true, message.Image(nv.coverURL), message.Image(nv.headURL), message.Text(report))
 	})
 
 	// 预览小说更新功能
-	engine.OnCommand(`更新预览`).SetBlock(true).
-		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
-		var (
-			novel  = getNovel(ctx)
-			report = novel.Preview
-		)
-		if `` == report {
-			kitten.SendText(ctx, true, `不存在的喵！`)
+	engine.OnCommand(cUpdatePreview).SetBlock(true).Limit(lbg).Handle(func(ctx *zero.Ctx) {
+		n, err := getNovel(ctx)
+		if nil != err {
+			kitten.SendWithImageFail(ctx, `%v`, err)
 			return
 		}
-		kitten.SendText(ctx, true, report)
+		if r := n.preview; `` != r {
+			kitten.SendText(ctx, true, r)
+			return
+		}
+		kitten.SendWithImageFail(ctx, `不存在的喵！`)
 	})
 
 	// 小说信息功能
-	engine.OnCommand(`小说`).SetBlock(true).
-		Limit(ctxext.NewLimiterManager(time.Minute, 1).LimitByGroup).Handle(func(ctx *zero.Ctx) {
-		novel := getNovel(ctx)
-		kitten.SendMessage(ctx, true, message.Image(novel.CoverURL), message.Text(novel.information()))
+	engine.OnCommand(cNovel).SetBlock(true).Limit(lbg).Handle(func(ctx *zero.Ctx) {
+		n, err := getNovel(ctx)
+		if nil != err {
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
+		}
+		kitten.SendMessage(ctx, true, message.Image(n.coverURL), message.Text(n.information()))
 	})
 
 	// 设置报更
-	engine.OnCommand(`添加报更`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		var (
-			novel    = getNovel(ctx)                                                             // 小说实例
-			c        = loadConfig(kitten.FilePath(kitten.Path(engine.DataFolder()), configFile)) // 报更配置
-			ci       = make([]any, len(c))                                                       // 书号接口数组
-			o        int64                                                                       // 发送对象
-			groupSet = make(map[string]mapset.Set)                                               // 书号:群号集合
-			track    = make(Config, 1)                                                           // 报更实例
-		)
-		if o = getO(ctx); 0 == o || 1 == o {
+	engine.OnCommand(cAddUpadte).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		var o int64 // 发送对象
+		if o = getO(ctx); slices.Contains([]int64{0, 1}, o) {
 			return
 		}
-		for k := range c {
-			ci[k] = c[k].BookID
-			gi := make([]any, len(c[k].GroupID)) // 群号接口数组
-			for i := range c[k].GroupID {
-				gi[i] = c[k].GroupID[i]
-			}
-			groupSet[c[k].BookID] = mapset.NewSetFromSlice(gi) // 群号集合
+		c, err := loadConfig(kitten.FilePath(engine.DataFolder(), configFile)) // 报更配置
+		if nil != err {
+			zap.S().Error(err)
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
 		}
-		cs := mapset.NewSetFromSlice(ci) // 书号集合
-		if cs.Contains(novel.ID) {
+		var (
+			lc       = len(c)
+			b        = make([]string, lc, lc)          // 书号切片
+			groupSet = make(map[string]mapset.Set, lc) // 书号:群号集合
+		)
+		for k := range c {
+			// 本书书号
+			b[k] = c[k].BookID
+			// 本书报更的群号集合
+			groupSet[c[k].BookID] = mapset.NewSet(c[k].GroupID)
+		}
+		novel, err := getNovel(ctx) // 小说实例
+		if nil != err {
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
+		}
+		if mapset.NewSet(b).Contains(novel.id) {
 			// 已经有该小说
-			if groupSet[novel.ID].Add(o) {
-				// 尚无该群号，添加成功
-				for k := range c {
-					gi := groupSet[c[k].BookID].ToSlice()
-					gs := make([]int64, len(gi))
-					for i := range gi {
-						gs[i] = gi[i].(int64)
-					}
-					// 群号排序
-					slices.Sort(gs)
-					c[k].GroupID = gs
-				}
-			} else {
+			if !groupSet[novel.id].Add(o) {
 				// 已有该群号，添加失败
-				kitten.SendTextOf(ctx, false, `《%s》已经添加报更了喵！`, novel.Name)
+				kitten.SendWithImageFail(ctx, `《%s》已经添加报更了喵！`, novel.name)
 				return
+			}
+			// 尚无该群号，添加成功
+			for k := range c {
+				var (
+					// 获取本书的报更对象接口切片
+					gi  = groupSet[c[k].BookID].ToSlice()
+					lgi = len(gi)
+					gs  = make([]int64, lgi, lgi)
+				)
+				// 将接口切片强转为 int64 群号切片
+				for i := range gi {
+					gs[i] = gi[i].(int64)
+				}
+				// 群号排序
+				slices.Sort(gs)
+				// 回写
+				c[k].GroupID = gs
 			}
 		} else {
 			// 没有该小说，新建并添加
-			track[0].BookID = novel.ID
-			track[0].BookName = novel.Name
-			track[0].GroupID = []int64{o}
-			c = append(c, track[0])
+			c = append(c, book{
+				BookID:   novel.id,
+				BookName: novel.name,
+				GroupID:  []int64{o},
+			})
 		}
-		if saveConfig(c, engine) {
-			kitten.SendTextOf(ctx, false, `添加《%s》报更成功喵！`, novel.Name)
-			return
-		}
-		kitten.SendTextOf(ctx, false, `添加《%s》报更失败喵！`, novel.Name)
+		c.saveConfig(ctx, `添加`, novel, engine)
 	})
 
 	// 移除报更
-	engine.OnCommand(`取消报更`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
-		var (
-			novel    = getNovel(ctx)                                                             // 小说实例
-			c        = loadConfig(kitten.FilePath(kitten.Path(engine.DataFolder()), configFile)) // 报更配置
-			ci       = make([]any, len(c))                                                       // 书号接口数组
-			o        int64                                                                       // 发送对象
-			groupSet = make(map[string]mapset.Set)                                               // 书号:群号集合
-		)
-		if o = getO(ctx); 0 == o || 1 == o {
+	engine.OnCommand(cCancelUpadte).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		var o int64 // 发送对象
+		if o = getO(ctx); slices.Contains([]int64{0, 1}, o) {
+			// 获取发送对象，如果当前发送对象不允许发送，则直接返回
 			return
 		}
-		if 0 < len(c) {
-			for k := range c {
-				ci[k] = c[k].BookID
-				gi := make([]any, len(c[k].GroupID)) // 群号接口数组
-				for i := range c[k].GroupID {
-					gi[i] = c[k].GroupID[i]
+		c, err := loadConfig(kitten.FilePath(engine.DataFolder(), configFile)) // 报更配置
+		if nil != err {
+			zap.S().Error(err)
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
+		}
+		lc := len(c)
+		if 0 >= lc {
+			ctx.Send(without)
+			return
+		}
+		novel, err := getNovel(ctx) // 小说实例
+		if nil != err {
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
+		}
+		for k := range c {
+			if novel.id != c[k].BookID {
+				// 如果当前遍历的书不是取消的书，则直接判断下一本
+				continue
+			}
+			groupSet := make(map[string]mapset.Set, lc) // 书号:群号集合
+			// 如果当前遍历的书应该取消报更，构建群号集合
+			groupSet[c[k].BookID] = mapset.NewSet(c[k].GroupID)
+			// 移除前，群的数量
+			n := groupSet[c[k].BookID].Cardinality()
+			// 移除在当前发送对象的报更
+			groupSet[c[k].BookID].Remove(o)
+			if 0 < groupSet[c[k].BookID].Cardinality() {
+				// 如果移除后，群的数量非 0（还有剩余的报更对象）
+				if n == groupSet[c[k].BookID].Cardinality() {
+					// 并没有移除成功，当前发送对象本来就没有在报更
+					kitten.SendText(ctx, false, `未追更本书喵！`)
+					return
 				}
-				groupSet[c[k].BookID] = mapset.NewSetFromSlice(gi) // 群号集合
-				n := groupSet[c[k].BookID].Cardinality()           // 群的数量
-				if novel.ID == c[k].BookID {
-					groupSet[c[k].BookID].Remove(o)
-					if 0 < groupSet[c[k].BookID].Cardinality() {
-						// 如果有群
-						if n == groupSet[c[k].BookID].Cardinality() {
-							// 没有该群号可移除
-							kitten.SendText(ctx, false, `本书不存在或不在追更列表，也许有其它错误喵～`)
-						}
-						// 移除成功
-						gi := groupSet[c[k].BookID].ToSlice()
-						gs := make([]int64, len(gi))
-						for i := range gi {
-							gs[i] = gi[i].(int64)
-						}
-						// 群号排序
-						slices.Sort(gs)
-						c[k].GroupID = gs
-					} else {
-						// 如果没有群，则移除该小说
-						c[k].GroupID = nil
-						c = append(c[:k], c[k+1:]...)
-					}
+				var (
+					// 移除成功，获取本书的报更对象接口切片
+					gi  = groupSet[c[k].BookID].ToSlice()
+					lgi = len(gi)
+					gs  = make([]int64, lgi, lgi)
+				)
+				// 将接口切片强转为 int64 群号切片
+				for i := range gi {
+					gs[i] = gi[i].(int64)
 				}
+				// 群号排序
+				slices.Sort(gs)
+				// 回写
+				c[k].GroupID = gs
+			} else {
+				// 如果移除后，不再有报更对象（也可能本来就没有报更对象），则移除该小说
+				c = slices.Delete(c, k, 1+k)
 			}
 		}
-		if saveConfig(c, engine) {
-			kitten.SendTextOf(ctx, false, `取消《%s》报更成功喵！`, novel.Name)
-			return
-		}
-		kitten.SendTextOf(ctx, false, `取消《%s》报更失败喵！`, novel.Name)
+		c.saveConfig(ctx, `取消`, novel, engine)
 	})
 
 	// 查询报更
-	engine.OnCommand(`查询报更`).SetBlock(true).
-		Handle(func(ctx *zero.Ctx) {
-			var (
-				r = `【报更列表】`
-				c = loadConfig(kitten.FilePath(kitten.Path(engine.DataFolder()), configFile)) // 报更配置
-				o int64                                                                       // 发送对象
-			)
-			if o = getO(ctx); 0 == o || 1 == o {
-				return
+	engine.OnCommand(cQueryUpadte).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		var o int64 // 发送对象
+		if o = getO(ctx); slices.Contains([]int64{0, 1}, o) {
+			return
+		}
+		c, err := loadConfig(kitten.FilePath(engine.DataFolder(), configFile)) // 报更配置
+		if nil != err {
+			zap.S().Error(err)
+			kitten.SendWithImageFail(ctx, `%v`, err)
+			return
+		}
+		if 0 >= len(c) {
+			ctx.Send(without)
+			return
+		}
+		const h = `【报更列表】`
+		var r strings.Builder
+		r.WriteString(h)
+		for k := range c {
+			var t string
+			if `` == c[k].UpdateTime {
+				t = `未知`
+			} else {
+				t = c[k].UpdateTime
 			}
-			if 0 < len(c) {
-				for k := range c {
-					var t string
-					if `` == c[k].UpdateTime {
-						t = `未知`
-					} else {
-						t = c[k].UpdateTime
-					}
-					for i := range c[k].GroupID {
-						if o == c[k].GroupID[i] {
-							r = strings.Join([]string{r,
-								fmt.Sprintf(`《%s》，书号 %s`, c[k].BookName, c[k].BookID),
-								fmt.Sprintf(`上次更新：%s`, t),
-							}, "\n")
-						}
-					}
+			for i := range c[k].GroupID {
+				if o != c[k].GroupID[i] {
+					continue
 				}
+				r.WriteString(fmt.Sprintf(`《%s》，书号 %s`, c[k].BookName, c[k].BookID))
+				r.WriteString(fmt.Sprint(`上次更新：`, t))
 			}
-			if `【报更列表】` == r {
-				r += "\n这里没有添加小说报更喵～"
-			}
-			ctx.Send(r)
-		})
+		}
+		ctx.Send(r.String())
+	})
 }
 
 /*
@@ -239,16 +277,26 @@ func init() {
 
 如果传入值不为书号，则先获取书号
 */
-func getNovel(ctx *zero.Ctx) (nv Novel) {
-	ag, ok := ctx.State[`args`].(string)
-	if ag, err := keyWord(ag).findBookID(); ok && (isInt(ag) || kitten.Check(err)) {
-		// 如果传入值是书号，或者成功找到了书号
-		nv = *novelPool.Get().(*Novel)
-		nv.init(ag)
-		defer novelPool.Put(&nv)
-	} else {
-		zap.S().Warnf("获取小说出现错误：\n%v", err)
+func getNovel(ctx *zero.Ctx) (nv novel, err error) {
+	a, ok := ctx.State[`args`]
+	if !ok {
+		return novel{}, fmt.Errorf(`获取小说时，上下文状态 %v 不包含参数`, ctx.State)
 	}
+	as, ok := a.(string)
+	if !ok {
+		return novel{}, fmt.Errorf(`获取小说时，参数 %v 无法断言为字符串`, a)
+	}
+	if _, err = strconv.Atoi(as); nil != err {
+		zap.S().Debugf(`获取小说时，参数字符串 %s 无法转换为书号，尝试作为搜索关键词`, as)
+		if as, err = keyWord(as).findBookID(); nil != err {
+			return novel{}, err
+		}
+	}
+	nv = *novelPool.Get().(*novel)
+	if err := nv.init(as); nil != err {
+		return novel{}, err
+	}
+	defer novelPool.Put(&nv)
 	return
 }
 
@@ -256,91 +304,81 @@ func getNovel(ctx *zero.Ctx) (nv Novel) {
 func track(e *control.Engine) {
 	// 处理 panic，防止程序崩溃
 	defer func() {
-		if err := recover(); !kitten.Check(err) {
-			zap.S().Errorf("%s 报更协程出现错误喵！\n%v", ReplyServiceName, err)
+		if err := recover(); nil != err {
+			zap.S().Error(replyServiceName, `报更协程出现错误喵！`, err)
 			debug.PrintStack()
 		}
 	}()
-	kitten.InitFile(kitten.FilePath(kitten.Path(e.DataFolder()), configFile), `[]`)
-	var (
-		novel   Novel
-		bot     *zero.Ctx
-		name    = kitten.Configs.NickName[0]
-		line    = `======================[` + name + `]======================`
-		data    = loadConfig(kitten.FilePath(kitten.Path(e.DataFolder()), configFile))
-		content = strings.Join([]string{
-			line,
-			`* OneBot + ZeroBot + Go`,
-			fmt.Sprintf(`一共有 %d 本小说`, len(data)),
-			`=======================================================`,
-		}, "\n")
-		t = time.NewTicker(5 * time.Second) // 每 5 秒检测一次
-	)
-	fmt.Println(content)
-	for nil == bot {
-		zap.S().Debugf(`尝试获取 Bot 实例：%d`, kitten.Configs.SelfID)
-		bot = zero.GetBot(kitten.Configs.SelfID)
-		zap.S().Debugf("获取的 Bot 实例：\n%v", bot)
-		<-t.C // 阻塞协程，收到定时器信号则释放
+	if err := func() error {
+		p := kitten.FilePath(e.DataFolder(), configFile)
+		return kitten.InitFile(&p, kitten.Empty)
+	}; nil != err() {
+		zap.S().Error(err())
+		return
 	}
+	data, err := loadConfig(kitten.FilePath(e.DataFolder(), configFile))
+	if nil != err {
+		zap.S().Error(err)
+		return
+	}
+	fmt.Println(fmt.Sprintf(`======================[%s]======================
+* OneBot + ZeroBot + Go
+一共有 %d 本小说
+=======================================================`,
+		config.NickName[0],
+		len(data)))
+	process.GlobalInitMutex.Lock()
+	bot := zero.GetBot(config.SelfID)
+	zap.S().Debug(`获取的 Bot 实例：`, bot)
+	process.GlobalInitMutex.Unlock()
+	t := time.NewTicker(5 * time.Second) // 每 5 秒检测一次
 	// 报更
 	for {
-		// 配置池初始化
-		configPool = sync.Pool{
-			New: func() interface{} {
-				c := loadConfig(kitten.FilePath(kitten.Path(e.DataFolder()), configFile))
-				return &c
-			},
+		select {
+		case data = <-cu: // 接收到更新配置则使用
+		case <-t.C: // 接收到定时器信号则释放
 		}
-		var (
-			// 从配置池初始化配置
-			data = *configPool.Get().(*Config)
-			done bool
-		)
 		for i := range data {
-			novel.init(data[i].BookID)
-			// 更新判定，并防止误报
-			if novel.NewChapter.URL == data[i].RecordURL ||
-				!novel.IsGet || !novel.NewChapter.IsGet {
+			// 从小说池初始化小说
+			nv := *novelPool.Get().(*novel)
+			if err = nv.init(data[i].BookID); nil != err {
+				zap.S().Error(err)
 				continue
 			}
-			// 距上次更新时间小于 1 秒则不报更，防止异常信息发送
-			if report, d := novel.update(); time.Second < d {
-				for k := range data[i].GroupID {
-					if 0 < data[i].GroupID[k] {
-						bot.SendGroupMessage(data[i].GroupID[k], message.Message{
-							message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report)})
-					} else {
-						bot.SendPrivateMessage(-data[i].GroupID[k], message.Message{
-							message.Image(novel.CoverURL), message.Image(novel.HeadURL), message.Text(report)})
-					}
-				}
-				data[i].BookName = novel.Name
-				data[i].RecordURL = novel.NewChapter.URL
-				data[i].UpdateTime = novel.NewChapter.Time.Format(`2006年01月02日 15时04分05秒`)
-				// 按更新时间倒序排列
-				slices.SortFunc(data, func(i, j Book) int {
-					return cmp.Compare(i.UpdateTime, j.UpdateTime)
-				})
-				slices.Reverse(data)
-				done = true
+			// 更新判定，并防止误报
+			if nv.newChapter.url == data[i].RecordURL {
+				continue
 			}
-		}
-		// 如果并没有报更，直接进入下一次循环
-		if done {
+			report, d := nv.update()
+			// 距上次更新时间小于等于 1 秒则不报更，防止异常信息发送
+			if time.Second > d {
+				continue
+			}
+			// 群号排序
+			slices.Sort(data[i].GroupID)
+			for k := range data[i].GroupID {
+				if 0 < data[i].GroupID[k] {
+					bot.SendGroupMessage(data[i].GroupID[k], message.Message{
+						message.Image(nv.coverURL), message.Image(nv.headURL), message.Text(report)})
+				} else {
+					bot.SendPrivateMessage(-data[i].GroupID[k], message.Message{
+						message.Image(nv.coverURL), message.Image(nv.headURL), message.Text(report)})
+				}
+			}
+			data[i].BookName = nv.name
+			data[i].RecordURL = nv.newChapter.url
+			data[i].UpdateTime = nv.newChapter.update.Format(kitten.Layout)
+			// 按更新时间倒序排列
+			slices.SortFunc(data, func(j, i book) int { return cmp.Compare(i.UpdateTime, j.UpdateTime) })
 			updateConfig, err := yaml.Marshal(data)
-			if kitten.Check(err) {
+			if nil == err {
 				zap.S().Infof(`记录 %s 成功喵！`, e.DataFolder()+configFile)
 			} else {
 				zap.S().Warnf(`记录 %s 失败喵！`, e.DataFolder()+configFile)
-				<-t.C // 阻塞协程，收到定时器信号则释放
 				continue
 			}
-			configPool.Put(&data)
-			kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(updateConfig)
-
+			kitten.FilePath(e.DataFolder(), configFile).Write(updateConfig)
 		}
-		<-t.C // 阻塞协程，收到定时器信号则释放
 	}
 }
 
@@ -353,18 +391,20 @@ func track(e *control.Engine) {
 
 返回 1 代表在群中无权限
 */
-func getO(ctx *zero.Ctx) (o int64) {
+func getO(ctx *zero.Ctx) int64 {
 	switch ctx.Event.DetailType {
 	case "private":
-		o = -ctx.Event.UserID
+		return -ctx.Event.UserID
 	case "group":
 		if !zero.AdminPermission(ctx) {
-			ctx.SendChain(message.At(ctx.Event.UserID), message.Text("\n你没有管理员权限喵！"))
-			return -1
+			kitten.SendWithImageFail(ctx, `你没有管理员权限喵！`)
+			return 1
 		}
-		o = ctx.Event.GroupID
+		return ctx.Event.GroupID
 	case "guild":
-		ctx.Send(`暂不支持频道喵！`)
+		ctx.Send(kitten.Guild)
+		return 0
+	default:
+		return 0
 	}
-	return
 }

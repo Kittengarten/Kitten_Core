@@ -1,38 +1,38 @@
 package sfacg
 
 import (
-	"regexp"
+	"cmp"
+	"slices"
+
+	"github.com/Kittengarten/KittenCore/kitten"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
 	"github.com/FloatTech/zbputils/control"
-	"github.com/Kittengarten/KittenCore/kitten"
+	zero "github.com/wdvxdr1123/ZeroBot"
 )
 
-// 加载配置
-func loadConfig(configFile kitten.Path) (c Config) {
-	if err := yaml.Unmarshal(configFile.Read(), &c); !kitten.Check(err) {
-		zap.S().Errorf("%s 载入配置文件出现错误喵！\n%v", ReplyServiceName, err)
+// 加载报更
+func loadConfig[T string | kitten.Path](configFile T) (c books, err error) {
+	d, err := kitten.Path(configFile).Read()
+	if nil != err {
+		return
 	}
+	err = yaml.Unmarshal(d, &c)
 	return
 }
 
-// 保存配置，成功则返回 True
-func saveConfig(c Config, e *control.Engine) (ok bool) {
+// 保存报更
+func (c books) saveConfig(ctx *zero.Ctx, o string, n novel, e *control.Engine) {
+	// 按更新时间倒序排列
+	slices.SortFunc(c, func(j, i book) int { return cmp.Compare(i.UpdateTime, j.UpdateTime) })
 	data, err := yaml.Marshal(c)
-	kitten.FilePath(kitten.Path(e.DataFolder()), configFile).Write(data)
-	if ok = kitten.Check(err); !ok {
-		zap.S().Errorf("配置文件写入错误喵！\n%v", err)
+	if nil != err {
+		zap.S().Error(err)
+		kitten.SendWithImageFail(ctx, `%v`, err)
 	}
-	return
-}
-
-// 判断字符串是否为整数（可用于判断是书号还是关键词）
-func isInt(str string) bool {
-	if match, err := regexp.MatchString(`^[0-9]+$`, str); kitten.Check(err) {
-		return match
-	}
-	zap.S().Error(`判断字符串是否为整数时，字符串正则匹配错误喵！`)
-	return false
+	kitten.FilePath(e.DataFolder(), configFile).Write(data)
+	cu <- c
+	kitten.SendTextOf(ctx, false, `%s《%s》报更成功喵！`, o, n.name)
 }

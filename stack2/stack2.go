@@ -99,9 +99,15 @@ mingaptime: 1     # 最小冷却时间（小时数）`)
 
 // 加入叠猫猫
 func (d *data) in(ctx *zero.Ctx, en *control.Engine) {
-	u := ctx.Event.UserID // 叠猫猫的 QQ
-	if slices.ContainsFunc(*d, func(k meow) bool { return u == k.ID && !k.Status && time.Unix(ctx.Event.Time, 0).Before(k.Time) }) {
-		kitten.SendWithImageFail(ctx, `休息时间不足，不能加入喵！`)
+	var (
+		u = ctx.Event.UserID // 叠猫猫的 QQ
+		c time.Duration      // 剩余的冷却时间
+	)
+	if slices.ContainsFunc(*d, func(k meow) bool {
+		c = k.Time.Sub(time.Unix(ctx.Event.Time, 0))
+		return u == k.ID && !k.Status && 0 < c
+	}) {
+		kitten.SendWithImageFail(ctx, `还需要休息 %.2f 小时才能加入喵！`, c.Hours())
 		return
 	}
 	if slices.ContainsFunc(*d, func(k meow) bool { return u == k.ID && k.Status }) {
@@ -134,14 +140,12 @@ func (d *data) in(ctx *zero.Ctx, en *control.Engine) {
 		p := d.getPressResult(ctx, k)
 		if 0 != p {
 			// 压坏了别的猫猫
-			r.WriteString(`有 %d 只猫猫被压坏了喵！`)
-			r.WriteByte('\n')
-			r.WriteString(`你在约 %.2f 小时内无法加入叠猫猫。`)
+			r.WriteString(`有 %d 只猫猫被压坏了喵！需要休息一段时间。`)
 			r.WriteByte('\n')
 			exit(ctx, &k, press, p)
 			e := dr[:p]
 			r.WriteString(e.toString())
-			kitten.SendWithImage(ctx, kitten.Path(`杂鱼.png`), r.String(), p, float64(k.Weight*stackConfig.GapTime)/10)
+			kitten.SendWithImage(ctx, kitten.Path(`杂鱼.png`), r.String(), p)
 			break
 		}
 		// 如果没有压坏猫猫，叠猫猫成功

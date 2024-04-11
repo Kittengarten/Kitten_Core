@@ -1,24 +1,19 @@
-package kitten
+package core
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 	"time"
 	"unicode"
-
-	"github.com/Kittengarten/KittenAnno/wta"
 
 	wr "github.com/mroth/weightedrand/v2"
 )
 
 // Choose 按权重抽取一个项目的序号
-func (c Choices) Choose() (result int, err error) {
+func (c Choicers) Choose() (result int, err error) {
 	choices := make([]wr.Choice[int, int], len(c), len(c))
-	for i := range c {
-		var (
-			item   = c[i].GetID()
-			weight = c[i].GetChance()
-		)
+	for i, ch := range c {
+		item, weight := ch.GetID(), ch.GetChance()
 		choices[i] = wr.Choice[int, int]{Item: item, Weight: weight}
 	}
 	chooser, err := wr.NewChooser(choices...)
@@ -29,8 +24,10 @@ func (c Choices) Choose() (result int, err error) {
 }
 
 // IsSameDate 判断两个时间是否在同一天
-func IsSameDate(t1 time.Time, t2 time.Time) bool {
-	return t1.Day() == t2.Day() && t1.Month() == t2.Month() && t1.Year() == t2.Year()
+func IsSameDate(t1, t2 time.Time) bool {
+	return t1.Day() == t2.Day() &&
+		t1.Month() == t2.Month() &&
+		t1.Year() == t2.Year()
 }
 
 /*
@@ -54,11 +51,11 @@ func CleanAll[T string | []rune | []byte](s T, lf bool) T {
 }
 
 /*
-GetMidText 获取中间字符串
+MidText 获取中间字符串
 
 pre 为前缀（不包含），suf 为后缀（不包含），str 为整个字符串
 */
-func GetMidText(pre string, suf string, str string) string {
+func MidText(pre, suf, str string) string {
 	return str[func() int {
 		// 截掉前缀及之前部分
 		if i := strings.Index(str, pre); -1 != i {
@@ -74,28 +71,17 @@ func GetMidText(pre string, suf string, str string) string {
 	}()]
 }
 
-// GetWTAAnno 获取世界树纪元的完整字符串和额外信息
-func GetWTAAnno() (str string, chord string, flower string, elemental string, imagery string, err error) {
-	anno, err := wta.GetAnno()
-	if nil != err {
-		return
-	}
-	str, chord = anno.GetAnnoStrSplit()
-	flower, elemental, imagery = anno.Flower, anno.Elemental, anno.Imagery
-	return
-}
-
 // GenerateRandomNumber 生成 count 个 [start, end) 范围的不重复的随机数
 func GenerateRandomNumber(start, end, count int) []int {
 	// 范围检查
-	if end <= start || (end-start) < count || 0 == count {
+	if end <= start || (end-start) < count || 0 >= count || MaxInt < count {
 		return nil
 	}
-	// 存放结果的集合（不重复）
+	// 存放不重复结果的集合
 	set := make(map[int]struct{}, count)
 	for len(set) < count {
 		// 生成随机数
-		set[rand.Intn(end-start)+start] = struct{}{}
+		set[rand.IntN(end-start)+start] = struct{}{}
 	}
 	var (
 		// 存放结果的切片
@@ -109,4 +95,9 @@ func GenerateRandomNumber(start, end, count int) []int {
 		i++
 	}
 	return nums
+}
+
+// RandomDelay 随机阻塞等待
+func RandomDelay(t time.Duration) {
+	<-time.NewTimer(time.Duration(float64(t) * rand.Float64())).C
 }

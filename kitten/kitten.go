@@ -3,42 +3,63 @@ package kitten
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/FloatTech/zbputils/ctxext"
+	"github.com/Kittengarten/KittenCore/kitten/core"
+	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/extension/rate"
 
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	Empty  = `[]`                // YAML 空数组
-	Layout = `2006.1.2 15:04:05` // 日期时间格式
-	Guild  = `暂不支持频道喵！`
+	User       byte = iota // 个人限速
+	Group                  // 群内限速
+	GroupFast              // 群内防刷屏限速
+	configFile = `config.yaml`
 )
 
 var (
-	config    Config // 来自 Bot 的配置文件
-	imagePath Path   // 图片路径
+	botConfig config    // 来自 Bot 的配置文件
+	imagePath core.Path // 图片路径
+	Limiter   limiter   // 限速器
+	Weight    int       // 自身叠猫猫体重（0.1kg 数）
 )
 
 func init() {
 	// 配置文件加载
-	d, err := Path(`config.yaml`).Read()
+	d, err := core.Path(configFile).Read()
 	if nil != err {
-		fmt.Println(err)
-		return
+		fmt.Println(err, `请配置 `+configFile+` 后重新启动喵！`)
 	}
-	if err := yaml.Unmarshal(d, &config); nil != err {
-		fmt.Println(err)
-		return
+	if err := yaml.Unmarshal(d, &botConfig); nil != err {
+		fmt.Println(err, `请正确配置 `+configFile+` 后重新启动喵！`)
+	}
+	if 0 == len(botConfig.SuperUsers) {
+		fmt.Println(`请在 ` + configFile + ` 中配置 superusers 喵！`)
 	}
 	// 图片路径
-	imagePath = FilePath(config.Path, `image`)
+	imagePath = core.FilePath(botConfig.Path, `image`)
+	// 定义限速器
+	Limiter.l = map[byte]func(ctx *zero.Ctx) *rate.Limiter{
+		GroupFast: ctxext.NewLimiterManager(time.Minute, 5).LimitByGroup,
+		Group:     ctxext.NewLimiterManager(15*time.Minute, 5).LimitByGroup,
+		User:      ctxext.NewLimiterManager(time.Hour, 5).LimitByUser,
+	}
 }
 
-// GetImagePath 获取图片路径
-func GetImagePath() Path {
-	return imagePath
+// MainConfig 获取主配置
+func MainConfig() config {
+	return botConfig
 }
 
-// GetMainConfig 获取主配置
-func GetMainConfig() Config {
-	return config
+// Get 获取限速器，o 为限速对象
+func (l limiter) Get(o byte) func(ctx *zero.Ctx) *rate.Limiter {
+	lmt, ok := l.l[o]
+	if ok {
+		return lmt
+	}
+	// 如果获取限速器失败，则返回默认的个人限速器
+	return ctxext.LimitByUser
 }

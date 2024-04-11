@@ -1,8 +1,13 @@
 package kitten
 
+import (
+	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/extension/rate"
+)
+
 type (
-	// Config 是来自 Bot 的配置文件的数据集
-	Config struct {
+	// 来自 Bot 的配置文件的数据集
+	config struct {
 		NickName      []string        `yaml:"nickname"`      // 昵称
 		SelfID        int64           `yaml:"selfid"`        // Bot 自身 ID
 		SuperUsers    []int64         `yaml:"superusers"`    // 亲妈账号
@@ -33,21 +38,14 @@ type (
 		MaxAge     int    `yaml:"expire"`     // 日志文件的过期天数，大于该天数前的日志文件会被清理。设置为 -1 可以禁用。
 	}
 
-	// Path 是一个表示文件路径的字符串
-	Path string
+	// 保存多个限速器的结构体
+	limiter struct {
+		l map[byte]func(ctx *zero.Ctx) *rate.Limiter
+	}
 
 	// QQ 是一个表示 QQ 的 int64
 	QQ int64
 
-	// Choices 是由随机项目的抽象接口组成的切片
-	Choices []interface {
-		GetID() int             // 该项目的 ID
-		GetInformation() string // 该项目的信息
-		GetChance() int         // 该项目的权重
-	}
-
-	// Pingstr 是延迟毫秒数对应的语言描述
-	Pingstr struct {
-		Min, Avg, Max, StdDev, Loss string // 最小、平均、最大延迟及抖动、丢包率
-	}
+	// 对上下文的检查类型
+	Item byte
 )

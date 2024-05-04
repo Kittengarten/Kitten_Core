@@ -24,7 +24,7 @@ import (
 const (
 	bannerpath = "data/zbpbanner/"
 	kanbanpath = "data/Control/"
-	bannerurl  = "https://gitcode.net/u011570312/zbpbanner/-/raw/main/"
+	bannerurl  = "https://github.com/FloatTech/zbpbanner/raw/main/"
 )
 
 type plugininfo struct {
@@ -50,7 +50,7 @@ var (
 )
 
 func init() {
-	err := os.MkdirAll(bannerpath, 0755)
+	err := os.MkdirAll(bannerpath, 0o755)
 	if err != nil {
 		panic(err)
 	}

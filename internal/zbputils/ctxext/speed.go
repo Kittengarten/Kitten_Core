@@ -53,6 +53,9 @@ func LimitByUser(ctx *zero.Ctx) *rate.Limiter {
 //
 //	按群号限制
 func LimitByGroup(ctx *zero.Ctx) *rate.Limiter {
+	if `private` == ctx.Event.DetailType {
+		return defaultLimiterManager.Load(-ctx.Event.UserID)
+	}
 	return defaultLimiterManager.Load(ctx.Event.GroupID)
 }
 
@@ -78,5 +81,8 @@ func (m LimiterManager) LimitByUser(ctx *zero.Ctx) *rate.Limiter {
 //
 //	按群号限制
 func (m LimiterManager) LimitByGroup(ctx *zero.Ctx) *rate.Limiter {
+	if `private` == ctx.Event.DetailType {
+		return m.m.Load(-ctx.Event.UserID)
+	}
 	return m.m.Load(ctx.Event.GroupID)
 }

@@ -23,14 +23,8 @@ func SendImageFromPool(imgname, imgpath string, genimg func() error, send ctxext
 			}
 		}
 		m.SetFile(file.BOTPATH + "/" + imgpath)
-		if err == ErrImgFileOutdated {
-			get = nil
-		}
 		hassent, err := m.Push(send, get)
 		if hassent {
-			return nil
-		}
-		if err != nil {
 			return err
 		}
 	}
@@ -57,9 +51,6 @@ func SendRemoteImageFromPool(imgname, imgurl string, send ctxext.NoCtxSendMsg, g
 		}
 		hassent, err := m.Push(send, get)
 		if hassent {
-			return nil
-		}
-		if err != nil {
 			return err
 		}
 	}

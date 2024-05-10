@@ -1,0 +1,8 @@
+go 1.22.3
+
+use (
+	.
+	./internal/sqlite
+	./internal/zap
+	./internal/zbputils
+)

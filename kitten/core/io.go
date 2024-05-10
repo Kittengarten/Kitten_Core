@@ -7,17 +7,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.uber.org/zap"
-
 	"github.com/wdvxdr1123/ZeroBot/message"
+	"go.uber.org/zap"
 )
 
+type Path string // Path 是一个表示文件路径的字符串
+
 // FilePath 文件路径构建
-func FilePath[T string | Path](elem ...T) Path {
-	var (
-		l = len(elem)
-		s = make([]string, l, l)
-	)
+func FilePath[T ~string](elem ...T) Path {
+	s := make([]string, len(elem), len(elem))
 	for i, e := range elem {
 		s[i] = string(e)
 	}
@@ -69,7 +67,7 @@ func (p Path) isDir() (bool, error) {
 
 // LoadPath 加载文件中保存的相对路径或绝对路径
 func (p Path) LoadPath() (Path, error) {
-	data, err := os.ReadFile(p.String())
+	data, err := p.Read()
 	if nil != err {
 		return p, err
 	}
@@ -99,7 +97,7 @@ func (p Path) Image(name Path) (message.MessageSegment, error) {
 	return message.Image(FilePath(p, name).String()), err
 }
 
-// String 返回路径规范化后的字符串表示，实现 fmt.Stringer
+// String 实现 fmt.Stringer，返回路径规范化后的字符串表示
 func (p Path) String() string {
 	return filepath.Clean(filepath.Join(string(p)))
 }
@@ -155,10 +153,20 @@ func (p Path) GetString(d string) string {
 		zap.S().Errorf(`初始化文件 %s 失败了喵！%s`, p, err)
 		return d
 	}
-	f, err := os.ReadFile(p.String())
+	f, err := p.Read()
 	if nil != err {
 		zap.S().Errorf(`打开文件 %s 失败了喵！%s`, p, err)
 		return d
 	}
 	return string(f)
+}
+
+// GetImage 从 url 下载图片到 path
+func GetImage(url string, path Path) error {
+	// 获取 HTTP 响应体，失败则返回
+	d, err := GETData(url)
+	if nil != err {
+		return err
+	}
+	return path.Write(d)
 }

@@ -11,6 +11,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// WrappedWriteSyncer 包装写入同步结构
+type WrappedWriteSyncer struct {
+	file *os.File
+}
+
 // zap 日志配置初始化
 func zapInit(c config) {
 	var (
@@ -56,11 +61,6 @@ func getLevel(lc LogConfig) zapcore.Level {
 		return zap.InfoLevel
 	}
 	return level.Level()
-}
-
-// WrappedWriteSyncer 包装写入同步结构
-type WrappedWriteSyncer struct {
-	file *os.File
 }
 
 // Write WrappedWriteSyncer 实现 Writer 接口

@@ -32,10 +32,10 @@ Write 文件写入
 
 如文件不存在会尝试新建
 */
-func (p Path) Write(data []byte) (err error) {
+func (p Path) Write(data []byte) error {
 	// 检查文件夹是否存在，不存在则创建
-	if err = os.MkdirAll(filepath.Dir(p.String()), 0o755); nil != err {
-		return
+	if err := os.MkdirAll(filepath.Dir(p.String()), 0o755); nil != err {
+		return err
 	}
 	// 写入文件
 	return os.WriteFile(p.String(), data, 0o644)

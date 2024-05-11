@@ -10,6 +10,7 @@ import (
 
 	"github.com/FloatTech/zbputils/img/text"
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 查看叠猫猫
@@ -57,13 +58,13 @@ func initFont() (err error) {
 }
 
 // 查看叠猫猫图片
-func (d *data) viewImage(ctx *zero.Ctx) {
+func (d *data) viewImage(ctx *zero.Ctx) message.MessageID {
 	var (
 		s = d.getStack() // 获取叠猫猫队列
 		l = len(s)       // 叠猫猫队列长度
 	)
 	if 2 > l {
-		return
+		return message.MessageID{}
 	}
 	var (
 		values = make([][]float64, 1, 1) // 叠猫猫图示数据
@@ -84,10 +85,9 @@ func (d *data) viewImage(ctx *zero.Ctx) {
 	}
 	p, err := setChart(values, str, l)
 	if nil != err {
-		sendWithImageFail(ctx, err)
-		return
+		return sendWithImageFail(ctx, err)
 	}
-	sendImage(ctx, p)
+	return sendImage(ctx, p)
 }
 
 // 设置图表
@@ -109,10 +109,10 @@ func setChart(v [][]float64, s []string, l int) (p *charts.Painter, err error) {
 }
 
 // 生成并发送图片
-func sendImage(ctx *zero.Ctx, p *charts.Painter) {
+func sendImage(ctx *zero.Ctx, p *charts.Painter) message.MessageID {
 	buf, err := p.Bytes()
 	if nil != err {
-		return
+		return message.MessageID{}
 	}
 	path := core.FilePath(imagePath, `temp.png`)
 	if err = path.Write(buf); nil != err {
@@ -120,7 +120,7 @@ func sendImage(ctx *zero.Ctx, p *charts.Painter) {
 	}
 	img, err := imagePath.Image(`temp.png`)
 	if nil != err {
-		sendWithImageFail(ctx, err)
+		return sendWithImageFail(ctx, err)
 	}
-	ctx.Send(img)
+	return ctx.Send(img)
 }

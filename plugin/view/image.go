@@ -14,8 +14,8 @@ import (
 const waifu = `https://www.thiswaifudoesnotexist.net/example-%d.jpg` // AI 随机老婆
 
 // 发送 AI 随机老婆
-func sendWaifu(ctx *zero.Ctx) {
-	kitten.SendMessage(ctx, true, message.Image(fmt.Sprintf(waifu, rand.IntN(100001))))
+func sendWaifu(ctx *zero.Ctx) message.MessageID {
+	return kitten.SendMessage(ctx, true, message.Image(fmt.Sprintf(waifu, rand.IntN(100001))))
 }
 
 // 发送图片
@@ -55,11 +55,10 @@ func scan(ctx *zero.Ctx) {
 }
 
 // 从事件上下文的消息所附带的图片中扫描二维码并发送结果（支持多张图片）
-func scanQRCode(ctx *zero.Ctx) {
+func scanQRCode(ctx *zero.Ctx) message.MessageID {
 	imgs := kitten.GetImageURL(ctx)
 	if 0 == len(imgs) {
-		kitten.SendWithImageFail(ctx, `未获取到图片的链接喵！`)
-		return
+		return kitten.SendWithImageFail(ctx, `未获取到图片的链接喵！`)
 	}
 	r := make([]string, len(imgs), len(imgs))
 	for i, img := range imgs {
@@ -70,5 +69,5 @@ func scanQRCode(ctx *zero.Ctx) {
 		}
 		r[i] = s.String()
 	}
-	kitten.SendText(ctx, true, strings.Join(r, "\n"))
+	return kitten.SendText(ctx, true, strings.Join(r, "\n"))
 }

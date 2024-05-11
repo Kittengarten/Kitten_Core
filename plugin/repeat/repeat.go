@@ -214,7 +214,7 @@ func load(configFile string) (c config, err error) {
 }
 
 // 保存复读姬配置
-func (c config) save(ctx *zero.Ctx) (err error) {
+func (c config) save(ctx *zero.Ctx) error {
 	data, err := yaml.Marshal(c)
 	if nil != err {
 		kitten.SendWithImageFail(ctx, fmt.Errorf(`保存复读姬配置文件错误喵！%w`, err))

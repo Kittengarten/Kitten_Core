@@ -13,6 +13,7 @@ import (
 	"github.com/vicanso/go-charts/v2"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 概率组
@@ -23,23 +24,21 @@ type chance struct {
 }
 
 // 分析叠猫猫
-func (d *data) analysis(ctx *zero.Ctx) {
+func (d *data) analysis(ctx *zero.Ctx) message.MessageID {
 	if cockroach == globalLocation {
-		kitten.SendWithImageFail(ctx, cockroachDoNotAnalysis)
-		return
+		return kitten.SendWithImageFail(ctx, cockroachDoNotAnalysis)
 	}
 	c, f, img, err := d.generateAnalysis(ctx)
 	if nil != err || !img {
 		// 如果生成失败，或者不需要图片，什么也不做
 		// 初始化时已经发送了相关信息
-		return
+		return message.MessageID{}
 	}
 	core.RandomDelay(time.Second)
 	if f {
-		d.analysisImage(ctx, c, true)
-		return
+		return d.analysisImage(ctx, c, true)
 	}
-	d.analysisImage(ctx, c, false)
+	return d.analysisImage(ctx, c, false)
 }
 
 // 生成分析并发送文本
@@ -426,10 +425,10 @@ func tip(w int, c chance) string {
 }
 
 // 查看叠猫猫图片
-func (d *data) analysisImage(ctx *zero.Ctx, c chance, flat bool) {
+func (d *data) analysisImage(ctx *zero.Ctx, c chance, flat bool) message.MessageID {
 	if !kitten.CheckCtx(ctx, kitten.Event) || !kitten.CheckCtx(ctx, kitten.Caller) {
 		// 没有事件或 APICaller ，无法发送
-		return
+		return message.MessageID{}
 	}
 	values := func() []float64 {
 		if flat {
@@ -465,21 +464,19 @@ func (d *data) analysisImage(ctx *zero.Ctx, c chance, flat bool) {
 		charts.PieSeriesShowLabel(),
 	)
 	if nil != err {
-		sendWithImageFail(ctx, err)
-		return
+		return sendWithImageFail(ctx, err)
 	}
 	buf, err := p.Bytes()
 	if nil != err {
-		sendWithImageFail(ctx, err)
-		return
+		return sendWithImageFail(ctx, err)
 	}
 	path := core.FilePath(imagePath, `temp.png`)
 	if err = path.Write(buf); nil != err {
-		sendWithImageFail(ctx, err)
+		return sendWithImageFail(ctx, err)
 	}
 	img, err := imagePath.Image(`temp.png`)
 	if nil != err {
-		sendWithImageFail(ctx, err)
+		return sendWithImageFail(ctx, err)
 	}
-	ctx.Send(img)
+	return ctx.Send(img)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 吃猫猫执行逻辑
@@ -29,29 +30,28 @@ func eatExe(ctx *zero.Ctx) {
 }
 
 // 吃猫猫
-func (d *data) eat(ctx *zero.Ctx) {
+func (d *data) eat(ctx *zero.Ctx) message.MessageID {
 	// 初始化自身
 	k, err := d.pre(ctx)
 	if nil != err {
-		return
+		return message.MessageID{}
 	}
 	if 小老虎 > k.getTypeID(ctx) {
-		sendWithImageFail(ctx, `老虎才可以吃猫猫——`)
-		return
+		return sendWithImageFail(ctx, `老虎才可以吃猫猫——`)
 	}
 	// 未在叠猫猫的队列
 	dn := d.getNoStack()
 	// 执行吃猫猫
 	if !d.doEat(ctx, &k) {
-		return
+		return message.MessageID{}
 	}
 	// 合并当前未叠猫猫与叠猫猫的队列，将老虎追加入切片中
 	*d = slices.Concat(dn, *d, data{k})
 	// 存储叠猫猫数据
 	if err = d.save(getPath(dataFile)); nil != err {
-		sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)
-		return
+		return sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)
 	}
+	return message.MessageID{}
 }
 
 // 执行吃猫猫

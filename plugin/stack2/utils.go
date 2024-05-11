@@ -8,6 +8,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 // 获取平地摔或特效的概率
@@ -85,21 +86,21 @@ func rangeAssertion(a []any) []any {
 }
 
 // 发送本地化文本
-func sendText(ctx *zero.Ctx, lf bool, text ...any) {
-	kitten.SendText(ctx, lf, rangeAssertion(text)...)
+func sendText(ctx *zero.Ctx, lf bool, text ...any) message.MessageID {
+	return kitten.SendText(ctx, lf, rangeAssertion(text)...)
 }
 
 // 发送本地化格式化文本
-func sendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) {
-	kitten.SendTextOf(ctx, lf, l10nReplacer(globalLocation).Replace(format), rangeAssertion(a)...)
+func sendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) message.MessageID {
+	return kitten.SendTextOf(ctx, lf, l10nReplacer(globalLocation).Replace(format), rangeAssertion(a)...)
 }
 
 // 发送带有失败图片的本地化文字消息
-func sendWithImageFail(ctx *zero.Ctx, text ...any) {
-	kitten.SendWithImageFail(ctx, rangeAssertion(text)...)
+func sendWithImageFail(ctx *zero.Ctx, text ...any) message.MessageID {
+	return kitten.SendWithImageFail(ctx, rangeAssertion(text)...)
 }
 
 // 发送带有自定义图片的本地化文字消息
-func sendWithImage(ctx *zero.Ctx, name core.Path, text ...any) {
-	kitten.SendWithImage(ctx, name, rangeAssertion(text)...)
+func sendWithImage(ctx *zero.Ctx, name core.Path, text ...any) message.MessageID {
+	return kitten.SendWithImage(ctx, name, rangeAssertion(text)...)
 }

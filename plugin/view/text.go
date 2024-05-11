@@ -9,6 +9,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 const (
@@ -19,36 +20,33 @@ const (
 )
 
 // 发送网页内容，lf 控制内容是否换行
-func send(ctx *zero.Ctx, url string, lf bool) {
+func send(ctx *zero.Ctx, url string, lf bool) message.MessageID {
 	// 获取 HTTP 响应体，失败则返回
 	data, err := core.GETData(url)
 	if nil != err {
-		kitten.SendWithImageFail(ctx, err)
-		return
+		return kitten.SendWithImageFail(ctx, err)
 	}
-	kitten.SendText(ctx, true, string(core.CleanAll(data, lf)))
+	return kitten.SendText(ctx, true, string(core.CleanAll(data, lf)))
 }
 
 // 发送一言
-func sendYiYan(ctx *zero.Ctx) {
+func sendYiYan(ctx *zero.Ctx) message.MessageID {
 	var (
-		rsp struct {
+		// 获取 HTTP 响应体，失败则返回
+		data, err = core.GETData(yiYan)
+		rsp       struct {
 			Hitokoto string `json:"hitokoto"`
 			From     string `json:"from"`
 			FromWho  string `json:"from_who"`
 		}
-		// 获取 HTTP 响应体，失败则返回
-		data, err = core.GETData(yiYan)
 	)
 	if nil != err {
-		kitten.SendWithImageFail(ctx, err)
-		return
+		return kitten.SendWithImageFail(ctx, err)
 	}
 	if err := json.Unmarshal(data, &rsp); nil != err {
-		kitten.SendWithImageFail(ctx, err)
-		return
+		return kitten.SendWithImageFail(ctx, err)
 	}
-	kitten.SendText(ctx, true, rsp.Hitokoto+`
+	return kitten.SendText(ctx, true, rsp.Hitokoto+`
 出自：`+rsp.From+func() string {
 		if 0 == len(rsp.FromWho) {
 			return ``

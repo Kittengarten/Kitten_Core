@@ -268,7 +268,6 @@ func ping(ctx *zero.Ctx) {
 	pingURL := kitten.GetArgs(ctx)
 	pg, err := probing.NewPinger(pingURL)
 	if nil != err {
-		kitten.Warn(err)
 		kitten.SendWithImage(ctx, `哈——？.png`, err)
 		return
 	}
@@ -303,7 +302,6 @@ func ping(ctx *zero.Ctx) {
 		}
 	}
 	if err := pg.Run(); nil != err {
-		kitten.Warn(err)
 		kitten.SendWithImageFail(ctx, err)
 		return
 	}

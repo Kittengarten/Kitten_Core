@@ -24,7 +24,7 @@ type (
 
 	// 小说数据
 	data struct {
-		isVIP      bool   // 是否上架
+		right      string // 版权状态
 		collection string // 小说收藏
 		hitNum     string // 小说点击
 		wordNum    string // 小说字数
@@ -75,5 +75,5 @@ type (
 
 	platform string // 平台
 
-	keyWord string // 搜索关键词
+	keyword string // 搜索关键词
 )

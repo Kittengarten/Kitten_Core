@@ -51,7 +51,13 @@ func (cp *chapter) init(p platform, url string) error {
 	}
 }
 
-// 小说信息
+// String 实现 fmt.Stringer
+func (cp *chapter) String() string {
+	return cp.title + `
+` + cp.url
+}
+
+// String 实现 fmt.Stringer
 func (nv *novel) String() string {
 	if `` == nv.id {
 		return `获取不到书号喵！`
@@ -67,12 +73,12 @@ func (nv *novel) String() string {
 书号：` + nv.id + `
 作者：` + nv.writer + `
 ` + nv.url + `
-【` + nv.theme + func(v bool) string {
-		if v {
-			return `】（上架）`
+【` + nv.theme + func(r string) string {
+		if `` == r {
+			return `】`
 		}
-		return `】（免费）`
-	}(nv.isVIP) + func(i string) string {
+		return `】（` + r + `）`
+	}(nv.right) + func(i string) string {
 		switch p {
 		case sf:
 			if 0 == len(i) {
@@ -89,9 +95,7 @@ func (nv *novel) String() string {
 收藏：` + nv.collection + `
 字数：` + nv.wordNum + func(i string) string {
 		switch p {
-		case sf:
-			return nv.status
-		case cwm:
+		case sf, cwm:
 			if 0 == len(i) {
 				return ``
 			}
@@ -114,7 +118,7 @@ func (nv *novel) String() string {
 }
 
 // 用关键词搜索书号
-func (key keyWord) findBookID(p platform) (string, error) {
+func (key keyword) findBookID(p platform) (string, error) {
 	switch p {
 	case sf:
 		return key.findSFBookID()
@@ -126,28 +130,29 @@ func (key keyWord) findBookID(p platform) (string, error) {
 }
 
 // 与上次更新比较
-func (nv *novel) makeCompare() (err error) {
+func (nv *novel) makeCompare() error {
 	var (
 		this, last chapter
 		p          = platform(nv.platform)
 	)
 	this = nv.newChapter
-	if err = last.init(p, this.lastURL); nil != err {
-		return
+	if `` == this.lastURL {
+		return errStatus(nv.url, onlyAChapter)
+	}
+	if err := last.init(p, this.lastURL); nil != err {
+		return err
 	}
 	nv.todayWordNum = this.wordNum
 	nv.timeGap = max(time.Second, this.update.Sub(last.update))
-	for nv.times = 1; core.IsSameDate(last.update, this.update); nv.times++ {
-		if last.lastURL == nv.url {
-			break // 防止遇到第一章导致无法获取上一章的错误
-		}
+	for nv.times = 1; core.IsSameDate(last.update, this.update) &&
+		last.lastURL != nv.url; nv.times++ {
 		this = last
 		nv.todayWordNum += this.wordNum
-		if err = last.init(p, this.lastURL); nil != err {
+		if err := last.init(p, this.lastURL); nil != err {
 			break
 		}
 	}
-	return
+	return nil
 }
 
 // 更新信息

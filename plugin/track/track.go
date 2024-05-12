@@ -121,7 +121,13 @@ func updatePreview(ctx *zero.Ctx) {
 		return
 	}
 	if r := n.preview; `` != r {
-		kitten.SendText(ctx, true, r)
+		kitten.SendTextOf(ctx, true, `《%s》
+%s
+%s`,
+			n.name,
+			&n.newChapter,
+			r,
+		)
 		return
 	}
 	kitten.SendWithImageFail(ctx, `不存在的喵！`)
@@ -314,7 +320,7 @@ func getNovel(ctx *zero.Ctx) (nv novel, err error) {
 	}()
 	if _, err = strconv.Atoi(args[1]); nil != err {
 		kitten.Debugf(`获取小说时，参数字符串 %s 无法转换为书号，尝试作为搜索关键词`, args[1])
-		if args[1], err = keyWord(args[1]).findBookID(p); nil != err {
+		if args[1], err = keyword(args[1]).findBookID(p); nil != err {
 			return novel{}, err
 		}
 	}

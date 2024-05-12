@@ -1,7 +1,5 @@
 package track
 
-import "github.com/Kittengarten/KittenCore/kitten/core"
-
 type (
 	// 状态
 	status byte
@@ -19,36 +17,43 @@ type (
 
 	// 没有找到小说
 	notFoundErr struct {
-		key keyWord // 搜索关键词
+		key keyword // 搜索关键词
 	}
 )
 
 const (
-	bookUnreachable     status = iota // 无法访问小说
-	chapterUnreachable                // 无法访问章节
-	chapterURLException               // 章节链接异常
-	noChapterURL                      // 没有章节链接
-	vipChapterException               // 付费状态异常
-	timeException                     // 时间异常
+	bookUnreachable        status = iota // 无法访问小说
+	noChapterURL                         // 没有章节链接
+	onlyAChapter                         // 只有一个章节
+	bookStatusException                  // 小说状态异常
+	timeException                        // 更新时间异常
+	chapterUnreachable                   // 无法访问章节
+	chapterURLException                  // 章节链接异常
+	chapterStatusException               // 章节状态异常
+	vipChapterException                  // 付费状态异常
 )
-
-var imgErr = `file://` + core.FilePath(imagePath.String(), `no.png`).String()
 
 // Error 实现 error
 func (e *statusErr) Error() string {
 	switch e.stat {
 	case bookUnreachable:
 		return `链接` + e.url + `没有小说喵！`
+	case noChapterURL:
+		return `小说` + e.url + `没有章节链接喵！`
+	case onlyAChapter:
+		return `小说` + e.url + `只有一个章节喵！`
+	case bookStatusException:
+		return `小说` + e.url + `状态异常喵！`
+	case timeException:
+		return `小说` + e.url + `上次更新时间异常喵！`
 	case chapterUnreachable:
 		return `链接` + e.url + `没有章节喵！`
 	case chapterURLException:
 		return e.url + `不是正常的章节链接喵！`
-	case noChapterURL:
-		return `小说` + e.url + `没有章节链接喵！`
+	case chapterStatusException:
+		return `章节` + e.url + `状态异常喵！`
 	case vipChapterException:
 		return `章节` + e.url + `付费状态异常喵！`
-	case timeException:
-		return `小说` + e.url + `上次更新时间异常喵！`
 	default:
 		return `状态错误`
 	}
@@ -75,7 +80,7 @@ func (e *notSupportedErr) Error() string {
 }
 
 // *notFoundErr 的构造函数，没有找到小说
-func notFound(key keyWord) *notFoundErr {
+func notFound(key keyword) *notFoundErr {
 	return &notFoundErr{
 		key: key,
 	}

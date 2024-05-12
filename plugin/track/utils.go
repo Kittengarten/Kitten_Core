@@ -7,7 +7,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
-	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
 	"gopkg.in/yaml.v3"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -80,20 +80,19 @@ func parseTime(str string, p platform) (time.Time, error) {
 	}
 }
 
-// 获取网页
-func fetchHTML(url string) (*goquery.Document, error) {
+// 获取网页 Node
+func fetchNode(url string) (*html.Node, error) {
 	// 获取响应体
 	body, err := core.GET(url)
 	if nil != err {
 		return nil, err
 	}
-	defer body.Close()
 	// 解析网页
-	return goquery.NewDocumentFromReader(body)
+	return html.Parse(body)
 }
 
 // String 实现 fmt.Stringer
-func (key keyWord) String() string {
+func (key keyword) String() string {
 	return string(key)
 }
 

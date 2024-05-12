@@ -13,9 +13,8 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
-	probing "github.com/prometheus-community/pro-bing"
-
 	hm "github.com/dustin/go-humanize"
+	probing "github.com/prometheus-community/pro-bing"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"

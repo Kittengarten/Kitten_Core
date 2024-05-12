@@ -2,15 +2,16 @@ package stack2
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
+	"github.com/RomiChan/syncx"
+
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
 
-var active sync.Map // 各群的上次活跃时间
+var active syncx.Map[int64, time.Time] // 各群的上次活跃时间
 
 func setCard(ctx *zero.Ctx, h int) {
 	if 0 >= ctx.Event.GroupID {
@@ -19,13 +20,13 @@ func setCard(ctx *zero.Ctx, h int) {
 	// 保存本群的活跃时间
 	active.Store(ctx.Event.GroupID, time.Unix(ctx.Event.Time, 0))
 	// 如果群距上次活跃时间大于一天，则删除
-	active.Range(func(g any, t any) bool {
-		if core.HoursPerDay*time.Hour < time.Since(t.(time.Time)) {
-			ctx.SetGroupCard(g.(int64), sid.Int(), card(ctx, -1))
+	active.Range(func(g int64, t time.Time) bool {
+		if core.HoursPerDay*time.Hour < time.Since(t) {
+			ctx.SetGroupCard(g, sid.Int(), card(ctx, -1))
 			active.Delete(g)
 			return true
 		}
-		ctx.SetGroupCard(g.(int64), sid.Int(), card(ctx, h))
+		ctx.SetGroupCard(g, sid.Int(), card(ctx, h))
 		return true
 	})
 }

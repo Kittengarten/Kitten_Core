@@ -3,13 +3,14 @@ module github.com/Kittengarten/KittenCore
 go 1.22.3
 
 require (
-	github.com/FloatTech/ZeroBot-Plugin v1.8.1-0.20240510044051-a9dfbdb54b68
+	github.com/FloatTech/ZeroBot-Plugin v1.8.1-0.20240511150019-e62c86a7409f
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20240505065920-8d7f1ec67e13
 	github.com/FloatTech/floatbox v0.0.0-20240505082030-226ec6713e14
 	github.com/FloatTech/zbpctrl v1.6.1
 	github.com/FloatTech/zbputils v1.7.1
 	github.com/Kittengarten/KittenAnno v1.0.1
-	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/antchfx/htmlquery v1.3.1	
+	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
 	github.com/dustin/go-humanize v1.0.1
 	github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd
 	github.com/mroth/weightedrand/v2 v2.1.0
@@ -21,6 +22,7 @@ require (
 	github.com/vicanso/go-charts/v2 v2.6.5
 	github.com/wdvxdr1123/ZeroBot v1.7.5-0.20240509033506-cc39bb31e471
 	go.uber.org/zap v1.27.0
+	golang.org/x/net v0.25.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -34,10 +36,7 @@ require (
 	github.com/FloatTech/sqlite v1.6.3 // indirect
 	github.com/FloatTech/ttl v0.0.0-20230307105452-d6f7b2b647d1 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7 // indirect
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
-	github.com/andybalholm/cascadia v1.3.2 // indirect
-	github.com/antchfx/htmlquery v1.3.1 // indirect
 	github.com/antchfx/xpath v1.3.0 // indirect
 	github.com/blend/go-sdk v1.20220411.3 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
@@ -122,7 +121,6 @@ require (
 	golang.org/x/exp/shiny v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/image v0.16.0 // indirect
 	golang.org/x/mobile v0.0.0-20240506190922-a1a533f289d3 // indirect
-	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect

@@ -14,6 +14,7 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
+	"github.com/RomiChan/syncx"
 	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -59,7 +60,7 @@ var (
 	// 触发复读的概率
 	chance = 0.5
 	// 消息缓存
-	m sync.Map
+	m syncx.Map[int64, stat]
 	// 互斥锁（只写不读）
 	mu sync.Mutex
 )
@@ -149,11 +150,11 @@ func repeat(ctx *zero.Ctx) {
 		s     = stat{
 			t:   1,
 			msg: ctx.Event.Message,
-		} // 缓存的消息统计
+		} // 更新的消息统计
 	)
-	if ok && compare(c.(stat).msg, ctx.Event.Message) {
+	if ok && compare(c.msg, ctx.Event.Message) {
 		// 如果消息与缓存的内容一致，增加一次复读计数
-		s = c.(stat)
+		s = c
 		s.t++
 	}
 	// 更新缓存
@@ -164,7 +165,8 @@ func repeat(ctx *zero.Ctx) {
 	}
 	if 1 == len(s.msg) && `image` == s.msg[0].Type {
 		// 如果是单张图片，重新构造图片消息段并发送
-		ctx.Send(message.Image(html.UnescapeString(core.MidText(`url=`, `]`, s.msg[0].String()))))
+		ctx.Send(message.Image(html.UnescapeString(
+			core.MidText(`url=`, `]`, s.msg[0].String()))))
 		return
 	}
 	ctx.Send(s.msg)

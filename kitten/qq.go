@@ -3,11 +3,11 @@ package kitten
 import (
 	"slices"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
+	"github.com/RomiChan/syncx"
 	"github.com/tidwall/gjson"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -34,8 +34,8 @@ const (
 )
 
 var (
-	StrangerInfo    sync.Map // 各陌生人信息缓存，键为 QQ（int64）
-	GroupMemberList sync.Map // 各群的成员列表缓存，键为群号（int64）
+	StrangerInfo    syncx.Map[QQ, qqInfo]       // 各陌生人信息缓存
+	GroupMemberList syncx.Map[int64, groupList] // 各群的成员列表缓存
 )
 
 // Set 设置 QQ 的 int64 类型原始值
@@ -60,13 +60,12 @@ func (u *QQ) info(ctx *zero.Ctx) qqInfo {
 		return qqInfo{}
 	}
 	// 从缓存获取该 QQ 的信息
-	value, ok := StrangerInfo.Load(u.Int())
+	si, ok := StrangerInfo.Load(*u)
 	if !ok {
 		// 如果获取不到，同步更新
 		u.updateInfo(ctx)
-		value, _ = StrangerInfo.Load(u.Int())
+		si, _ = StrangerInfo.Load(*u)
 	}
-	si := value.(qqInfo) // 陌生人信息
 	// 如果缓存已经过期，异步更新缓存的陌生人信息
 	if expire < time.Since(si.T) {
 		go u.updateInfo(ctx)
@@ -76,7 +75,7 @@ func (u *QQ) info(ctx *zero.Ctx) qqInfo {
 
 // （私有）更新陌生人信息
 func (u *QQ) updateInfo(ctx *zero.Ctx) {
-	StrangerInfo.Store(u.Int(),
+	StrangerInfo.Store(*u,
 		qqInfo{
 			Info: ctx.GetStrangerInfo(u.Int(), true),
 			T:    time.Now(),
@@ -162,13 +161,12 @@ func MemberList(ctx *zero.Ctx) groupList {
 		return groupList{}
 	}
 	// 从缓存获取该群成员列表
-	value, ok := GroupMemberList.Load(ctx.Event.GroupID)
+	gmi, ok := GroupMemberList.Load(ctx.Event.GroupID)
 	if !ok {
 		// 如果获取不到，同步更新
 		updateMemberList(ctx)
-		value, _ = GroupMemberList.Load(ctx.Event.GroupID)
+		gmi, _ = GroupMemberList.Load(ctx.Event.GroupID)
 	}
-	gmi := value.(groupList) // 该群成员列表
 	// 如果缓存已经过期，异步更新缓存的该群成员列表
 	if expire < time.Since(gmi.T) {
 		go updateMemberList(ctx)

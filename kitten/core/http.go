@@ -5,6 +5,10 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/antchfx/htmlquery"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/charset"
 )
 
 // HTTPErr 是一个表示 HTTP 错误的结构体
@@ -30,13 +34,13 @@ func (e *HTTPErr) Error() string {
 HTTP 错误：` + strconv.Itoa(e.StatusCode)
 }
 
-// GET 获取 HTTP GET 响应体
-func GET(url string) (io.ReadCloser, error) {
+// GET 获取 HTTP GET 响应体（无需关闭）
+func GET(url string) (io.Reader, error) {
 	res, err := doRequest(http.MethodGet, url, ``, nil)
 	if nil != err {
 		return nil, err
 	}
-	return res.Body, nil
+	return charset.NewReader(res.Body, res.Header.Get(CT))
 }
 
 // GETData 获取 HTTP GET 数据
@@ -48,13 +52,13 @@ func GETData(url string) ([]byte, error) {
 	return io.ReadAll(res.Body)
 }
 
-// POST 获取 HTTP POST 响应体
-func POST(url, contentType string, body io.Reader) (io.ReadCloser, error) {
+// POST 获取 HTTP POST 响应体（无需关闭）
+func POST(url, contentType string, body io.Reader) (io.Reader, error) {
 	res, err := doRequest(http.MethodPost, url, contentType, body)
 	if nil != err {
 		return nil, err
 	}
-	return res.Body, nil
+	return charset.NewReader(res.Body, res.Header.Get(CT))
 }
 
 // POSTData 获取 HTTP POST 数据
@@ -93,4 +97,9 @@ func checkError(res *http.Response, url string) error {
 		Method:     res.Request.Method,
 		StatusCode: res.StatusCode,
 	}
+}
+
+// InnerText 在 *html.Node 中使用 XPath 获取文本
+func InnerText(top *html.Node, expr string) string {
+	return htmlquery.InnerText(htmlquery.FindOne(top, expr))
 }

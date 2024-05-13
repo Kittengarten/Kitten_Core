@@ -185,16 +185,14 @@ func DoNotKnow(ctx *zero.Ctx) message.MessageID {
 }
 
 /*
-GetObject 获取发送对象，admin 代表是否需要管理员权限
+GetObject 获取发送对象
 
 返回正整数代表群，返回负整数代表私聊
 
 返回默认值 0 代表不支持的对象
 （非消息的事件中获取的 bot 实例 | 频道）
-
-返回 1 代表在群中无权限
 */
-func GetObject(ctx *zero.Ctx, admin bool) int64 {
+func GetObject(ctx *zero.Ctx) int64 {
 	if !CheckCtx(ctx, Event) {
 		// 没有事件，无法获取
 		return 0
@@ -203,14 +201,7 @@ func GetObject(ctx *zero.Ctx, admin bool) int64 {
 	case DetailTypePrivate:
 		return -ctx.Event.UserID
 	case DetailTypeGroup:
-		if !admin || zero.AdminPermission(ctx) {
-			return ctx.Event.GroupID
-		}
-		SendWithImageFail(ctx, `管理员才能使用喵！`)
-		return 1
-	case DetailTypeGuild:
-		SendWithImageFail(ctx, `暂不支持频道喵！`)
-		fallthrough
+		return ctx.Event.GroupID
 	default:
 		return 0
 	}

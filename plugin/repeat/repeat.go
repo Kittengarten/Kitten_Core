@@ -163,11 +163,11 @@ func repeat(ctx *zero.Ctx) {
 		// 如果没有达到复读阈值，或者没有按概率触发复读，则返回
 		return
 	}
-	if 1 == len(s.msg) && `image` == s.msg[0].Type {
-		// 如果是单张图片，重新构造图片消息段并发送
-		ctx.Send(message.Image(html.UnescapeString(
-			core.MidText(`url=`, `]`, s.msg[0].String()))))
-		return
+	for i, seg := range s.msg {
+		if `image` != seg.Type {
+			continue
+		}
+		s.msg[i] = message.Image(html.UnescapeString(seg.Data[`url`]))
 	}
 	ctx.Send(s.msg)
 }

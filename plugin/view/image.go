@@ -18,7 +18,7 @@ func sendWaifu(ctx *zero.Ctx) message.MessageID {
 	return kitten.SendMessage(ctx, true, message.Image(fmt.Sprintf(waifu, rand.IntN(100001))))
 }
 
-// 发送图片
+// 从 ctx 参数中的 URL 发送图片
 func sendImage(ctx *zero.Ctx) {
 	img := kitten.GetArgs(ctx)
 	if !zero.SuperUserPermission(ctx) && strings.Contains(`file://`, img) {

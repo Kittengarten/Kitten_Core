@@ -73,10 +73,10 @@ func init() {
 	// 戳一戳
 	engine.On(`notice/notify/poke`, zero.OnlyToMe).SetBlock(true).Handle(poke)
 
-	// 通过 CQ 码、链接等让 Bot 发送图片，为防止滥用，仅管理员可用
+	// 通过链接让 Bot 发送图片，为防止滥用，仅管理员可用
 	zero.OnCommand(`图片`, zero.AdminPermission).SetBlock(true).Handle(sendImage)
 
-	// 通过 CQ 码、链接、图片等让 Bot 扫描二维码，为防止滥用，仅管理员可用
+	// 通过链接、图片等让 Bot 扫描二维码，为防止滥用，仅管理员可用
 	zero.OnCommandGroup([]string{`扫码`, `扫描`}, zero.AdminPermission).SetBlock(true).Handle(scan)
 }
 

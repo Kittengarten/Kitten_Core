@@ -98,7 +98,7 @@ func selfAnalysis(ctx *zero.Ctx, d data, p string) {
 }
 
 // 自动排行
-func selfRank(ctx *zero.Ctx, d data, p string, o int64) {
+func selfRank(ctx *zero.Ctx, d data, p string) {
 	ctx.Event.UserID = sid.Int()
 	if 0.1 < rand.Float64() {
 		return
@@ -107,7 +107,7 @@ func selfRank(ctx *zero.Ctx, d data, p string, o int64) {
 	core.RandomDelay(time.Second)
 	ctx.Send(p + cStack + cMeow + ` ` + cRank)
 	core.RandomDelay(time.Second)
-	d.rank(ctx, o)
+	d.rank(ctx)
 }
 
 // 评估吃猫猫，返回吃的权重作为概率

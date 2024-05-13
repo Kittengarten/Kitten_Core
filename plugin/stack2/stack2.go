@@ -112,10 +112,6 @@ func init() {
 
 // 叠猫猫执行逻辑
 func stackExe(ctx *zero.Ctx) {
-	o := kitten.GetObject(ctx, false)
-	if 0 == o {
-		return
-	}
 	globalCtx = ctx
 	op := core.CleanAll(kitten.GetArgs(ctx), false)
 	switch op {
@@ -143,7 +139,7 @@ func stackExe(ctx *zero.Ctx) {
 		core.RandomDelay(time.Second)
 		selfIn(ctx, d, p)
 	case cView:
-		d.view(ctx, 0 > o || zero.AdminPermission(ctx))
+		d.view(ctx, zero.UserOrGrpAdmin(ctx))
 		core.RandomDelay(time.Second)
 		d.viewImage(ctx)
 	case cAnalysis:
@@ -153,8 +149,8 @@ func stackExe(ctx *zero.Ctx) {
 		core.RandomDelay(time.Second)
 		selfIn(ctx, d, p)
 	case cRank:
-		d.rank(ctx, o)
-		selfRank(ctx, d, p, o)
+		d.rank(ctx)
+		selfRank(ctx, d, p)
 	default:
 		var (
 			u    = ctx.Event.UserID

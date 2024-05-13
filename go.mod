@@ -3,14 +3,14 @@ module github.com/Kittengarten/KittenCore
 go 1.22.3
 
 require (
-	github.com/FloatTech/ZeroBot-Plugin v1.8.1-0.20240511150019-e62c86a7409f
+	github.com/FloatTech/ZeroBot-Plugin v1.8.1-0.20240512153739-cda583e7b625
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20240505065920-8d7f1ec67e13
 	github.com/FloatTech/floatbox v0.0.0-20240505082030-226ec6713e14
 	github.com/FloatTech/zbpctrl v1.6.1
 	github.com/FloatTech/zbputils v1.7.1
 	github.com/Kittengarten/KittenAnno v1.0.1
-	github.com/antchfx/htmlquery v1.3.1	
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
+	github.com/antchfx/htmlquery v1.3.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd
 	github.com/mroth/weightedrand/v2 v2.1.0
@@ -37,12 +37,14 @@ require (
 	github.com/FloatTech/ttl v0.0.0-20230307105452-d6f7b2b647d1 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
+	github.com/ajstarks/svgo v0.0.0-20200320125537-f189e35d30ca // indirect
 	github.com/antchfx/xpath v1.3.0 // indirect
 	github.com/blend/go-sdk v1.20220411.3 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
+	github.com/corona10/goimagehash v1.1.0 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4 // indirect
 	github.com/faiface/beep v1.1.0 // indirect
@@ -82,6 +84,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jozsefsallai/gophersauce v1.0.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kanrichan/resvg-go v0.0.2-0.20231001163256-63db194ca9f5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
@@ -92,6 +95,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mroth/weightedrand v1.0.0 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
+	github.com/notnil/chess v1.9.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
@@ -105,6 +110,7 @@ require (
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/gin-swagger v1.6.0 // indirect
 	github.com/swaggo/swag v1.16.3 // indirect
+	github.com/tetratelabs/wazero v1.5.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect

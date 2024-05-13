@@ -31,7 +31,7 @@ func (nv *novel) initSF(bookID string) error {
 	// 生成链接
 	nv.url = sfURL + nv.id + `/`
 	// 获取小说网页，失败则返回
-	doc, err := fetchNode(nv.url)
+	doc, err := core.FetchNode(nv.url)
 	if nil != err {
 		return err
 	}
@@ -126,7 +126,7 @@ func (cp *chapter) initSF(url string) error {
 	// 向章节传入链接
 	cp.url = url
 	// 获取章节网页，失败则返回
-	doc, err := fetchNode(cp.url)
+	doc, err := core.FetchNode(cp.url)
 	if nil != err {
 		return err
 	}
@@ -161,7 +161,7 @@ func (cp *chapter) initSF(url string) error {
 
 // 用关键词搜索书号
 func (key keyword) findSFBookID() (string, error) {
-	doc, err := fetchNode(fmt.Sprint(`http://s.sfacg.com/?Key=`, key, `&S=1&SS=0`))
+	doc, err := core.FetchNode(fmt.Sprint(`http://s.sfacg.com/?Key=`, key, `&S=1&SS=0`))
 	if nil != err {
 		return ``, err
 	}
@@ -175,7 +175,7 @@ func (key keyword) findSFBookID() (string, error) {
 
 // 获取移动版简述
 func (nv *novel) getIntroduce() (string, error) {
-	doc, err := fetchNode(`https://m.sfacg.com/b/` + nv.id + `/`)
+	doc, err := core.FetchNode(`https://m.sfacg.com/b/` + nv.id + `/`)
 	if nil != err {
 		return ``, err
 	}

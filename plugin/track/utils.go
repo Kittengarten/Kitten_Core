@@ -7,7 +7,6 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
-	"golang.org/x/net/html"
 	"gopkg.in/yaml.v3"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -78,17 +77,6 @@ func parseTime(str string, p platform) (time.Time, error) {
 	default:
 		return time.Parse(core.Layout, str)
 	}
-}
-
-// 获取网页 Node
-func fetchNode(url string) (*html.Node, error) {
-	// 获取响应体
-	body, err := core.GET(url)
-	if nil != err {
-		return nil, err
-	}
-	// 解析网页
-	return html.Parse(body)
 }
 
 // String 实现 fmt.Stringer

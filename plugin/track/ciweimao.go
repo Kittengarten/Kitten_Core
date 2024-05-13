@@ -25,7 +25,7 @@ func (nv *novel) initCWM(bookID string) error {
 	// 生成链接
 	nv.url = cwmURL + nv.id
 	// 获取小说网页，失败则返回
-	doc, err := fetchNode(nv.url)
+	doc, err := core.FetchNode(nv.url)
 	if nil != err {
 		return err
 	}
@@ -102,7 +102,7 @@ func (cp *chapter) initCWM(url string) error {
 	// 向章节传入链接
 	cp.url = url
 	// 获取章节网页，失败则返回
-	doc, err := fetchNode(cp.url)
+	doc, err := core.FetchNode(cp.url)
 	if nil != err {
 		return err
 	}
@@ -149,7 +149,7 @@ func (cp *chapter) initCWM(url string) error {
 
 // 用关键词搜索书号
 func (key keyword) findCWMBookID() (string, error) {
-	doc, err := fetchNode(fmt.Sprint(
+	doc, err := core.FetchNode(fmt.Sprint(
 		cwmHost+`/get-search-book-list/0-0-0-0-0-0/全部/`, key, `/1`))
 	if nil != err {
 		return ``, err

@@ -103,3 +103,14 @@ func checkError(res *http.Response, url string) error {
 func InnerText(top *html.Node, expr string) string {
 	return htmlquery.InnerText(htmlquery.FindOne(top, expr))
 }
+
+// 获取网页 Node
+func FetchNode(url string) (*html.Node, error) {
+	// 获取响应体
+	body, err := GET(url)
+	if nil != err {
+		return nil, err
+	}
+	// 解析网页
+	return html.Parse(body)
+}

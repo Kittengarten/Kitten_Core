@@ -10,7 +10,7 @@ import (
 )
 
 // 叠猫猫排行榜
-func (d *data) rank(ctx *zero.Ctx, o int64) {
+func (d *data) rank(ctx *zero.Ctx) {
 	// 将猫猫按体重顺序排序
 	slices.SortFunc(*d, func(i, j meow) int {
 		if i.Weight < j.Weight {
@@ -81,7 +81,7 @@ func (d *data) rank(ctx *zero.Ctx, o int64) {
 		c, c-r,
 		itof(a),
 		func() string {
-			if 0 <= o && !zero.AdminPermission(ctx) {
+			if !zero.UserOrGrpAdmin(ctx) {
 				return ``
 			}
 			return fmt.Sprintf(`

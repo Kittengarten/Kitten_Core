@@ -32,9 +32,9 @@ const (
 	cNovel           = `小说`
 	cUpdateTest      = `更新测试`
 	cUpdatePreview   = `更新预览`
-	cAddUpadte       = `添加报更`
-	cCancelUpadte    = `取消报更`
-	cQueryUpadte     = `查询报更`
+	cAddUpdate       = `添加报更`
+	cCancelUpdate    = `取消报更`
+	cQueryUpdate     = `查询报更`
 	without          = `这里没有添加小说报更喵～`
 	errConfig        = `报更配置文件错误喵！`
 	errLoad          = `加载` + errConfig
@@ -56,9 +56,9 @@ var (
 		p, cNovel, pf, ag,
 		p, cUpdateTest, pf, ag,
 		p, cUpdatePreview, pf, ag,
-		p, cQueryUpadte,
-		p, cAddUpadte, pf, ag,
-		p, cCancelUpadte, pf, ag)
+		p, cQueryUpdate,
+		p, cAddUpdate, pf, ag,
+		p, cCancelUpdate, pf, ag)
 	// 注册插件
 	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
@@ -94,13 +94,16 @@ func init() {
 		Handle(novelInfo)
 
 	// 添加报更
-	engine.OnCommand(cAddUpadte).SetBlock(true).Limit(ctxext.LimitByGroup).Handle(add)
+	engine.OnCommand(cAddUpdate, zero.UserOrGrpAdmin).SetBlock(true).
+		Limit(ctxext.LimitByGroup).Handle(add)
 
 	// 取消报更
-	engine.OnCommand(cCancelUpadte).SetBlock(true).Limit(ctxext.LimitByGroup).Handle(cancel)
+	engine.OnCommand(cCancelUpdate, zero.UserOrGrpAdmin).SetBlock(true).
+		Limit(ctxext.LimitByGroup).Handle(cancel)
 
 	// 查询报更
-	engine.OnCommand(cQueryUpadte).SetBlock(true).Limit(kitten.GetLimiter(kitten.GroupSlow)).Handle(query)
+	engine.OnCommand(cQueryUpdate).SetBlock(true).
+		Limit(kitten.GetLimiter(kitten.GroupSlow)).Handle(query)
 }
 
 // 更新测试
@@ -145,12 +148,7 @@ func novelInfo(ctx *zero.Ctx) {
 
 // 添加报更
 func add(ctx *zero.Ctx) {
-	o := kitten.GetObject(ctx, true) // 发送对象
-	switch o {
-	case 0, 1:
-		// 如果当前发送对象不允许发送，则直接返回
-		return
-	}
+	o := kitten.GetObject(ctx) // 发送对象
 	mu.Lock()
 	defer mu.Unlock()
 	c, err := loadConfig(configFile) // 报更配置
@@ -193,12 +191,7 @@ func add(ctx *zero.Ctx) {
 
 // 取消报更
 func cancel(ctx *zero.Ctx) {
-	o := kitten.GetObject(ctx, true) // 发送对象
-	switch o {
-	case 0, 1:
-		// 如果当前发送对象不允许发送，则直接返回
-		return
-	}
+	o := kitten.GetObject(ctx) // 发送对象
 	mu.Lock()
 	defer mu.Unlock()
 	c, err := loadConfig(configFile) // 报更配置
@@ -246,12 +239,7 @@ func cancel(ctx *zero.Ctx) {
 
 // 查询报更
 func query(ctx *zero.Ctx) {
-	o := kitten.GetObject(ctx, false) // 发送对象
-	switch o {
-	case 0, 1:
-		// 如果当前发送对象不允许发送，则直接返回
-		return
-	}
+	o := kitten.GetObject(ctx) // 发送对象
 	mu.RLock()
 	c, err := loadConfig(configFile) // 报更配置
 	mu.RUnlock()

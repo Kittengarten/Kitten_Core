@@ -11,7 +11,6 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	"github.com/tidwall/gjson"
-	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -41,6 +40,10 @@ var (
 		Help:              help,
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
+	// 今日文件路径
+	todayPath = core.FilePath(engine.DataFolder(), todayFile)
+	// 统计文件路径
+	statPath = core.FilePath(engine.DataFolder(), statFile)
 	// 读写锁
 	mu sync.RWMutex
 )
@@ -57,11 +60,10 @@ func init() {
 
 // XX 今天吃什么
 func todayMeal(ctx *zero.Ctx) {
-	cp := getPath(todayFile) // 路径
-	var c config
 	mu.Lock()
 	defer mu.Unlock()
-	if err := get(cp, &c); nil != err {
+	c, err := core.Load[config](todayPath, core.Empty)
+	if nil != err {
 		kitten.SendWithImageFail(ctx, err)
 	}
 	name := core.MidText(``, cEEKDA, ctx.Event.RawMessage)
@@ -81,7 +83,7 @@ func todayMeal(ctx *zero.Ctx) {
 				Group: []int64{ctx.Event.GroupID},
 			})
 			// 写入文件
-			if err := set(c, cp); nil != err {
+			if err := core.Save(todayPath, c); nil != err {
 				kitten.SendWithImageFail(ctx, err)
 				return
 			}
@@ -102,7 +104,7 @@ func todayMeal(ctx *zero.Ctx) {
 			// 注册
 			c[ci].Group = append(c[ci].Group, ctx.Event.GroupID)
 			// 写入文件
-			if err := set(c, cp); nil != err {
+			if err := core.Save(todayPath, c); nil != err {
 				kitten.SendWithImageFail(ctx, err)
 				return
 			}
@@ -128,7 +130,7 @@ func todayMeal(ctx *zero.Ctx) {
 	var list []gjson.Result
 	// 获取该角色注册的所有群的群员列表
 	for _, v := range c[ci].Group {
-		list = append(list, ctx.GetGroupMemberListNoCache(v).Array()...)
+		list = append(list, kitten.MemberList(ctx, v).List...)
 	}
 	// 只保留昨天一天的群员
 	list = slices.DeleteFunc(list, func(v gjson.Result) bool {
@@ -137,7 +139,7 @@ func todayMeal(ctx *zero.Ctx) {
 	})
 	// 在其中取足够人的下标
 	nums, err := core.GenerateRandomNumber(0, len(list), count)
-	if err != nil {
+	if nil != err {
 		kitten.SendWithImageFail(ctx, fmt.Errorf(`没有足够的食物喵！%w`, err))
 		return
 	}
@@ -148,7 +150,7 @@ func todayMeal(ctx *zero.Ctx) {
 	// 写入时间
 	c[ci].Time = time.Unix(ctx.Event.Time, 0)
 	// 写入文件
-	if err := set(c, cp); nil != err {
+	if err := core.Save(todayPath, c); nil != err {
 		kitten.SendWithImageFail(ctx, err)
 		return
 	}
@@ -160,44 +162,5 @@ func todayMeal(ctx *zero.Ctx) {
 
 // 生成每一餐的内容
 func line(ctx *zero.Ctx, u kitten.QQ) string {
-	return u.TitleCardOrNickName(ctx) + `	♥	` + u.String()
-}
-
-// 加载并反序列化
-func get[T *config | *stat](p core.Path, s T) error {
-	cd, err := load(p) // 加载
-	if nil != err {
-		return err
-	}
-	return unmarshal(cd, s) // 反序列化
-}
-
-// 加载
-func load(p core.Path) ([]byte, error) {
-	if err := core.InitFile(&p, core.Empty); nil != err { // 初始化文件
-		return nil, err
-	}
-	return p.Read() // 读取
-}
-
-// 反序列化
-func unmarshal[T *config | *stat](d []byte, s T) error {
-	if core.Empty == string(d) {
-		return nil
-	}
-	return yaml.Unmarshal(d, s)
-}
-
-// 序列化并写入
-func set[T config | stat](s T, p core.Path) error {
-	b, err := yaml.Marshal(s) // 序列化
-	if nil != err {
-		return err
-	}
-	return p.Write(b) // 写入
-}
-
-// 获取路径
-func getPath(name string) core.Path {
-	return core.FilePath(engine.DataFolder(), name)
+	return u.TitleCardOrNickName(ctx) + `	❤	` + u.String()
 }

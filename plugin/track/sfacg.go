@@ -25,7 +25,7 @@ const (
 // 小说网页信息获取
 func (nv *novel) initSF(bookID string) error {
 	// 初始化小说平台
-	nv.platform = sf.String()
+	nv.platform = string(sf)
 	// 向小说传入书号
 	nv.id = bookID
 	// 生成链接
@@ -35,7 +35,7 @@ func (nv *novel) initSF(bookID string) error {
 	if nil != err {
 		return err
 	}
-	if err = mayExist(doc, nv.url, bookStrings); nil != err {
+	if err := mayExist(doc, nv.url, bookStrings); nil != err {
 		return err
 	}
 	// 获取书名
@@ -77,10 +77,10 @@ func (nv *novel) initSF(bookID string) error {
 	nv.preview = strings.TrimPrefix(core.CleanAll(strings.ReplaceAll(core.InnerText(
 		doc, `//div[@class="chapter-info"]/p`), `　　`, "\n"), true), "\n")
 	// 获取新章节链接
-	newChapter, err := htmlquery.Query(doc, `//div[@class="chapter-info"]/h3/a/@href`)
-	if nil != err {
+	newChapter := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/h3/a/@href`)
+	if nil == newChapter {
 		// 如果新章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
-		return fmt.Errorf(`新章节链接错误：%w%w`, errStatus(nv.url, noChapterURL), err)
+		return fmt.Errorf(`新章节链接错误：%w`, errStatus(nv.url, noChapterURL))
 	}
 	// 从章节池初始化章节，向章节传入本书链接
 	nv.newChapter = *chapterPool.Get().(*chapter)
@@ -91,15 +91,20 @@ func (nv *novel) initSF(bookID string) error {
 		sfHost + htmlquery.InnerText(newChapter)); nil != err {
 		return err
 	}
-	// 如果是上架
+	// 如果不是 VIP 书籍，直接返回
 	if `VIP` != nv.right {
 		return nil
 	}
 	// 尝试获取新公众章节链接
-	newChapterFreeNode, err := htmlquery.Query(doc, `//div[@class="chapter-info"]/div/a/@href`)
-	if nil != err {
+	newChapterFreeNode := htmlquery.FindOne(doc, `//div[@class="chapter-info"]/div/a/@href`)
+	if nil == newChapterFreeNode {
+		// 如果新公众章节不存在，直接返回
+		return nil
+	}
+	newChapterFreeURL := htmlquery.InnerText(newChapterFreeNode)
+	if `` == newChapterFreeURL {
 		// 如果新公众章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
-		return fmt.Errorf(`新公众章节链接错误：%w%w`, errStatus(nv.url, noChapterURL), err)
+		return fmt.Errorf(`新公众章节链接错误：%w`, errStatus(nv.url, noChapterURL))
 	}
 	// 从章节池初始化章节，向章节传入本书链接
 	newChapterFree := *chapterPool.Get().(*chapter)
@@ -107,7 +112,7 @@ func (nv *novel) initSF(bookID string) error {
 	newChapterFree.bookURL = nv.url
 	// 加载最新公众章节
 	if err := newChapterFree.initSF(
-		sfHost + htmlquery.InnerText(newChapterFreeNode)); nil != err {
+		sfHost + newChapterFreeURL); nil != err {
 		return err
 	}
 	// 如果最新公众章节比最新章节新，则以最新公众章节为准
@@ -130,7 +135,7 @@ func (cp *chapter) initSF(url string) error {
 	if nil != err {
 		return err
 	}
-	if err = mayExist(doc, cp.url, bookStrings); nil != err {
+	if err := mayExist(doc, cp.url, bookStrings); nil != err {
 		return err
 	}
 	// 获取章节标题
@@ -165,12 +170,11 @@ func (key keyword) findSFBookID() (string, error) {
 	if nil != err {
 		return ``, err
 	}
-	href := htmlquery.FindOne(doc,
-		`//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`)
-	if nil == href {
-		return ``, notFound(key)
+	url, err := core.InnerText(doc, `//a[@id="SearchResultList1___ResultList_LinkInfo_0"]/@href`), nil
+	if `` == url {
+		err = notFound(key)
 	}
-	return strings.TrimPrefix(htmlquery.InnerText(href), sfURL), nil
+	return strings.TrimPrefix(url, sfURL), err
 }
 
 // 获取移动版简述
@@ -179,10 +183,8 @@ func (nv *novel) getIntroduce() (string, error) {
 	if nil != err {
 		return ``, err
 	}
-	if err = mayExist(doc, nv.url, bookStrings); nil != err {
-		return ``, err
-	}
-	return core.InnerText(doc, `//ul[@class="book_profile"]/li[@class="book_bk_qs1"]`), nil
+	return core.InnerText(doc, `//ul[@class="book_profile"]/li[@class="book_bk_qs1"]`),
+		mayExist(doc, nv.url, bookStrings)
 }
 
 // 判断小说或章节是否可能存在
@@ -197,20 +199,11 @@ func mayExist(doc *html.Node, url string, count stringCount) error {
 func (nv *novel) getNovelRightItem(doc *html.Node) {
 	for _, tt := range htmlquery.Find(doc,
 		`//h1[@class="title"]/span[starts-with(@class,"tag")]`) {
-		if blue := htmlquery.FindOne(tt, `.[contains(@class,"blue")]`); `` ==
-			nv.right && nil != blue {
-			// 获取版权状态
-			nv.right = htmlquery.InnerText(blue)
-		}
-		if yellow := htmlquery.FindOne(tt, `.[contains(@class,"yellow")]`); `` ==
-			nv.right && nil != yellow {
-			// 获取版权状态
-			nv.right = htmlquery.InnerText(yellow)
-		}
-		if green := htmlquery.FindOne(tt, `.[contains(@class,"green")]`); `` ==
-			nv.item && nil != green {
-			// 获取项目
-			nv.item = htmlquery.InnerText(green)
-		}
+		// 获取版权状态
+		nv.right += core.InnerText(tt, `.[contains(@class,"blue")]`)
+		// 获取版权状态
+		nv.right += core.InnerText(tt, `.[contains(@class,"yellow")]`)
+		// 获取项目
+		nv.item += core.InnerText(tt, `.[contains(@class,"green")]`)
 	}
 }

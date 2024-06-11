@@ -1,6 +1,10 @@
 package track
 
-import "time"
+import (
+	"time"
+
+	"github.com/Kittengarten/KittenCore/kitten"
+)
 
 type (
 	// 一本小说
@@ -65,12 +69,13 @@ type (
 
 	// 小说报更项目的数据集
 	book struct {
-		Platform   string  `yaml:"platform"`   // 报更平台
-		BookID     string  `yaml:"bookid"`     // 报更书号
-		BookName   string  `yaml:"bookname"`   // 报更书名
-		GroupID    []int64 `yaml:"groupid"`    // 书友群号，负数代表私聊 QQ
-		RecordURL  string  `yaml:"recordurl"`  // 上次更新链接
-		UpdateTime string  `yaml:"updatetime"` // 上次更新时间
+		Platform   string      // 报更平台
+		BookID     string      // 报更书号（为了未来兼容性，不使用数值）
+		BookName   string      // 报更书名
+		Writer     string      // 小说作者
+		Users      []kitten.QQ // 用户，正数代表 QQ 号，负数代表群号
+		RecordURL  string      // 上次更新链接
+		UpdateTime time.Time   // 上次更新时间
 	}
 
 	platform string // 平台

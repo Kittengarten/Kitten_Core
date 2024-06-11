@@ -75,13 +75,13 @@ func cpuPercent() float64 {
 }
 
 // 内存使用调用
-func getMem() (m *mem.VirtualMemoryStat) {
+func getMem() *mem.VirtualMemoryStat {
 	m, err := mem.VirtualMemory()
 	if nil != err {
 		kitten.Warnln(`获取内存使用失败了喵！`, err)
 		return &mem.VirtualMemoryStat{}
 	}
-	return
+	return m
 }
 
 // 内存使用率 %
@@ -95,19 +95,19 @@ func use(m *mem.VirtualMemoryStat) string {
 }
 
 // 磁盘使用调用
-func getDisk() (d []*disk.UsageStat) {
+func getDisk() []*disk.UsageStat {
 	p, err := disk.Partitions(false)
 	if nil != err {
 		kitten.Warnln(`获取磁盘分区失败了喵！`, err)
-		return
+		return nil
 	}
-	d = make([]*disk.UsageStat, len(p), len(p))
+	d := make([]*disk.UsageStat, len(p), len(p))
 	for i, s := range p {
 		if d[i], err = disk.Usage(s.Mountpoint); nil != err {
 			kitten.Warnln(`获取磁盘信息失败了喵！`, err)
 		}
 	}
-	return
+	return d
 }
 
 // 全部磁盘使用情况
@@ -128,25 +128,23 @@ func diskUsedAll() string {
 // Windows 系统下获取 CPU 温度，通过微星小飞机（需要自行安装配置，并确保温度在其 log 中的位置）
 func cpuTemperatureOnWindows() string {
 	const defaultPath = `C:\Program Files (x86)\MSI Afterburner\HardwareMonitoring.hml`
-	n := getPath(filePath)
+	n := core.FilePath(engine.DataFolder(), filePath)
 	if err := core.InitFile(&n, defaultPath); nil != err {
+		kitten.Error(err)
 		return err.Error()
 	}
 	p := n.GetPath(defaultPath)
 	if err := os.Remove(p.String()); nil != err {
+		kitten.Error(err)
 		return err.Error()
 	}
 	<-time.NewTimer(1 * time.Second).C
-	file, err := p.Read()
+	file, err := p.ReadBytes()
 	if nil != err {
+		kitten.Error(err)
 		return err.Error()
 	}
 	return string(file[329:331]) // 此处为温度在微星小飞机 log 中的位置
-}
-
-// 获取路径
-func getPath(name string) core.Path {
-	return core.FilePath(engine.DataFolder(), name)
 }
 
 // 返回状态等级
@@ -243,7 +241,8 @@ func needRestart(err error) bool {
 		return true
 	}
 	// 如果是 HTTP 4xx 错误，则不需要重启，否则需要重启
-	return http.StatusBadRequest > httpErr.StatusCode || http.StatusInternalServerError <= httpErr.StatusCode
+	return http.StatusBadRequest > httpErr.StatusCode ||
+		http.StatusInternalServerError <= httpErr.StatusCode
 }
 
 func doRestart(bot *zero.Ctx, err error) {

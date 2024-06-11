@@ -117,6 +117,20 @@ func (nv *novel) String() string {
 	}() + nv.introduce
 }
 
+// String 实现 fmt.Stringer
+func (b book) String() string {
+	return `《` + b.BookName + `》` + `
+作者：　　	` + b.Writer + `
+平台：　　	` + b.Platform + `
+书号：　　	` + b.BookID + `
+上次更新：	` + fmt.Sprint(func() string {
+		if b.UpdateTime.IsZero() {
+			return `未知`
+		}
+		return b.UpdateTime.Format(core.Layout)
+	}())
+}
+
 // 用关键词搜索书号
 func (key keyword) findBookID(p platform) (string, error) {
 	switch p {
@@ -136,7 +150,7 @@ func (nv *novel) makeCompare() error {
 		p          = platform(nv.platform)
 	)
 	this = nv.newChapter
-	if `` == this.lastURL {
+	if `` == this.lastURL || nv.url == this.lastURL {
 		return errStatus(nv.url, onlyAChapter)
 	}
 	if err := last.init(p, this.lastURL); nil != err {
@@ -178,10 +192,12 @@ func (nv *novel) update() string {
 // 今日报更
 func (nv *novel) todayReport() string {
 	if err := nv.makeCompare(); nil != err {
+		kitten.Error(err)
 		return err.Error()
 	}
 	s, err := nv.timeGapConvert()
 	if nil != err {
+		kitten.Error(err)
 		return err.Error()
 	}
 	return s.String() + `

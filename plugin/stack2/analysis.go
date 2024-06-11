@@ -204,8 +204,7 @@ func tip(w int, c chance) string {
 			`吃掉以后就能永远在一起了`,
 			`桀桀桀，美味的小猫咪！
 生来就是要被老虎吃掉的`,
-			`大吉大利
-今天吃猫`,
+			`大吉大利，今天吃猫`,
 		}...,
 		)
 	}
@@ -263,6 +262,12 @@ func tip(w int, c chance) string {
 你还是……笑起来……最棒了……`,
 			`人们为何选择沉睡？我想……
 是因为害怕从「梦」中醒来。`,
+			`我的旅途到此为止了。从今以后……
+就是你的路了。`,
+			`我梦见一片焦土，
+一株破土而生的新蕊，
+它迎着朝阳绽放，
+向我低语呢喃……`,
 			`你不要过来呀！`,
 			`别让我掉下去，别让我掉下去～`,
 			`菜，就多叠
@@ -271,8 +276,7 @@ func tip(w int, c chance) string {
 现在是现在
 你要是一直拿以前当现在
 你怎么不和小奶猫比啊`,
-			`爬得越高
-摔得越疼`,
+			`爬得越高，摔得越疼`,
 		}...,
 		)
 	}
@@ -296,8 +300,7 @@ func tip(w int, c chance) string {
 	}
 	if 0.5 <= c.s && 0.8 > c.s {
 		t = append(t, []string{
-			`勇敢猫猫
-不怕困难`,
+			`勇敢猫猫，不怕困难`,
 			`就是这么自信`,
 			`叠得要快，姿势要帅`,
 			`做我的猫`,
@@ -308,6 +311,29 @@ func tip(w int, c chance) string {
 			`狂风呼啸着，这使你充满了决心`,
 			`非常好猫堆，使我猫咪胖胖`,
 			`随蝴蝶一起消散吧，旧日的幻影！`,
+			`——「若是筑梦时被绊住腿脚，
+就抬头吧。」
+「看向这片梦境，然后告诉自己：
+你的努力从不会白费。
+总有一日，它们将连成星光，
+照亮某人的眼睛。」
+愿你能寻到自己的巢，
+愿你能书写自己的诗。`,
+			`「蔷薇啊蔷薇，实现我的愿望。」
+「花从石头中绽放，金蔷薇对我歌唱。」
+「她唱：」
+「没有土地承载我，唯有歌谣承载我。」
+「歌谣战胜敌视我的命运，战胜我的结局。」
+「战胜我战胜时间，战胜永不消逝的消逝。」`,
+			`「请闭上眼睛，再往前看」
+「那些未完成的画，仍在流淌的歌」
+「那缤纷的世界会是什么模样？」
+「那里也会有梦吗？」
+「有深不见底的海吗？」
+「鸟儿会在落日时分歌唱吗？」
+「时间的芬芳啊，你闻到了吗？」
+「迷路的人，向前看，那里并非空无一物」
+「只是那来自未来的玫瑰，还未盛放……」`,
 			`「来呀，来呀，花园的梦，森林的记忆…」
 「来呀，来呀，不返的风，不逆流的水…」
 「来呀，来呀，甜美的梦与苦涩的回味。」
@@ -317,6 +343,11 @@ func tip(w int, c chance) string {
 「等待呀，让我们：」
 「雨季归来，草木欢畅…」
 「石榴歌唱，苹果鼓掌。」`,
+			`「归去，归去，花园的梦，森林的记忆…」
+「迎接吧，让我们：」
+「渐浓的睡梦，不散的欢欣。」
+「庆贺呀，让我们：」
+「石榴歌唱，苹果鼓掌！」`,
 			`「…黄金与白银、日轮与月镜相映的颜色，就是她们的友谊。」`,
 			`「但愿新的梦想永远不被无留陀侵蚀。但愿旧的故事与无留陀一同被忘却。」
 「但愿绿色的原野、山丘永远不变得枯黄。但愿溪水永远清澈，但愿鲜花永远盛开。」
@@ -441,7 +472,7 @@ func (d *data) analysisImage(ctx *zero.Ctx, c chance, flat bool) message.Message
 	p, err := charts.PieRender(
 		values,
 		charts.TitleOptionFunc(charts.TitleOption{
-			Text:    `叠猫猫分析`,
+			Text:    l10nReplacer(globalLocation).Replace(`叠猫猫分析`),
 			Subtext: `概率`,
 			Left:    charts.PositionCenter,
 		}),
@@ -455,14 +486,22 @@ func (d *data) analysisImage(ctx *zero.Ctx, c chance, flat bool) message.Message
 			Orient: charts.OrientVertical,
 			Data: func() []string {
 				if flat {
-					return []string{`平地摔`, `成功`}
+					return []string{
+						l10nReplacer(globalLocation).Replace(`平地摔`),
+						`成功`,
+					}
 				}
-				return []string{`压坏`, `摔下`, `成功`}
+				return []string{
+					l10nReplacer(globalLocation).Replace(`压坏`),
+					l10nReplacer(globalLocation).Replace(`摔下`),
+					`成功`,
+				}
 			}(),
 			Left: charts.PositionLeft,
 		}),
 		charts.PieSeriesShowLabel(),
 	)
+	defer p.Close()
 	if nil != err {
 		return sendWithImageFail(ctx, err)
 	}
@@ -471,7 +510,7 @@ func (d *data) analysisImage(ctx *zero.Ctx, c chance, flat bool) message.Message
 		return sendWithImageFail(ctx, err)
 	}
 	path := core.FilePath(imagePath, `temp.png`)
-	if err = path.Write(buf); nil != err {
+	if _, err = path.Write(buf); nil != err {
 		return sendWithImageFail(ctx, err)
 	}
 	img, err := imagePath.Image(`temp.png`)

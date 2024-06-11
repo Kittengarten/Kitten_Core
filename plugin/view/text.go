@@ -77,5 +77,5 @@ func weight() string {
 	if 0 == kitten.Weight {
 		return ``
 	}
-	return fmt.Sprintf(`	♥	叠猫猫体重：	%.1f kg`, float64(kitten.Weight)/10)
+	return fmt.Sprintf(`	❤	叠猫猫体重：	%.1f kg`, float64(kitten.Weight)/10)
 }

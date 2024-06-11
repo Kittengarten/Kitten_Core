@@ -25,7 +25,7 @@ type (
 )
 
 // Choose 按权重抽取一个项目的序号
-func (c Choicers) Choose() (result int, err error) {
+func (c Choicers) Choose() (int, error) {
 	choices := make([]wr.Choice[int, int], len(c), len(c))
 	for i, ch := range c {
 		item, weight := ch.GetID(), ch.GetChance()

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
+	"gitlab.com/tozd/go/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -64,7 +65,7 @@ func getLevel(lc LogConfig) zapcore.Level {
 }
 
 // Write WrappedWriteSyncer 实现 Writer 接口
-func (mws WrappedWriteSyncer) Write(p []byte) (n int, err error) {
+func (mws WrappedWriteSyncer) Write(p []byte) (int, error) {
 	return mws.file.Write(p)
 }
 
@@ -73,92 +74,103 @@ func (mws WrappedWriteSyncer) Sync() error {
 	return nil
 }
 
+// 为 []any 中的错误元素添加错误堆栈
+func withStack(a []any) []any {
+	for k, v := range a {
+		err, ok := v.(error)
+		if ok {
+			a[k] = errors.WithStack(err)
+		}
+	}
+	return a
+}
+
 // Debug 在 Debug 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。
 func Debug(args ...any) {
-	zap.S().Debug(args...)
+	zap.S().Debug(withStack(args)...)
 }
 
 // Info 在 Info 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。
 func Info(args ...any) {
-	zap.S().Info(args...)
+	zap.S().Info(withStack(args)...)
 }
 
 // Warn 在 Warn 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。
 func Warn(args ...any) {
-	zap.S().Warn(args...)
+	zap.S().Warn(withStack(args)...)
 }
 
 // Error 在 Error 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。
 func Error(args ...any) {
-	zap.S().Error(args...)
+	zap.S().Error(withStack(args)...)
 }
 
 // Panic 在 Panic 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。
 func Panic(args ...any) {
-	zap.S().Panic(args...)
+	zap.S().Panic(withStack(args)...)
 }
 
 // Fatal 在 Fatal 等级记录提供的参数。当参数都不是字符串时，会在参数之间添加空格。
 func Fatal(args ...any) {
-	zap.S().Fatal(args...)
+	zap.S().Fatal(withStack(args)...)
 }
 
 // Debugf 根据格式说明符设置消息的格式，并将其记录在 Debug 等级中。
 func Debugf(format string, args ...any) {
-	zap.S().Debugf(format, args...)
+	zap.S().Debugf(format, withStack(args)...)
 }
 
 // Infof 根据格式说明符设置消息的格式，并将其记录在 Info 等级中。
 func Infof(format string, args ...any) {
-	zap.S().Infof(format, args...)
+	zap.S().Infof(format, withStack(args)...)
 }
 
 // Warnf 根据格式说明符设置消息的格式，并将其记录在 Warn 等级中。
 func Warnf(format string, args ...any) {
-	zap.S().Warnf(format, args...)
+	zap.S().Warnf(format, withStack(args)...)
 }
 
 // Errorf 根据格式说明符设置消息的格式，并将其记录在 Error 等级中。
 func Errorf(format string, args ...any) {
-	zap.S().Errorf(format, args...)
+	zap.S().Errorf(format, withStack(args)...)
 }
 
 // Panicf 根据格式说明符设置消息的格式，并将其记录在 Panic 等级中。
 func Panicf(format string, args ...any) {
-	zap.S().Panicf(format, args...)
+	zap.S().Panicf(format, withStack(args)...)
 }
 
 // Fatalf 根据格式说明符设置消息的格式，并将其记录在 Fatal 等级中。
 func Fatalf(format string, args ...any) {
-	zap.S().Fatalf(format, args...)
+	zap.S().Fatalf(format, withStack(args)...)
 }
 
 // Debugln 在 Debug 等级记录一条消息。参数之间始终添加空格。
 func Debugln(args ...any) {
-	zap.S().Debugln(args...)
+	zap.S().Debugln(withStack(args)...)
 }
 
 // Infoln 在 Info 等级记录一条消息。参数之间始终添加空格。
 func Infoln(args ...any) {
-	zap.S().Infoln(args...)
+	zap.S().Infoln(withStack(args)...)
 }
 
 // Warnln 在 Warn 等级记录一条消息。参数之间始终添加空格。
 func Warnln(args ...any) {
-	zap.S().Warnln(args...)
+	zap.S().Warnln(withStack(args)...)
 }
 
 // Errorln 在 Error 等级记录一条消息。参数之间始终添加空格。
 func Errorln(args ...any) {
-	zap.S().Errorln(args...)
+	zap.S().Errorln(withStack(args)...)
 }
 
 // Panicln 在 Panic 等级记录一条消息。参数之间始终添加空格。
 func Panicln(args ...any) {
-	zap.S().Panicln(args...)
+	zap.S().Panicln(withStack(args)...)
 }
 
 // Fatalln 在 Fatal 等级记录一条消息。参数之间始终添加空格。
 func Fatalln(args ...any) {
-	zap.S().Fatalln(args...)
+	zap.S().Fatalln(withStack(args)...)
 }

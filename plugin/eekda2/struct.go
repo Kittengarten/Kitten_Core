@@ -27,11 +27,11 @@ type (
 
 	// 今天吃什么
 	today struct {
-		ctx   *zero.Ctx        `yaml:"-"`     // 上下文
-		Time  time.Time        `yaml:"time"`  // 更新时间
-		ID    string           `yaml:"id"`    // 角色名
-		Group []int64          `yaml:"group"` // 该角色对应的群号
-		Meal  [count]kitten.QQ `yaml:"meal"`  // 今天的每一餐
+		ctx   *zero.Ctx        `yaml:"-"` // 上下文
+		Time  time.Time        // 更新时间
+		ID    string           // 角色名
+		Group []int64          // 该角色对应的群号
+		Meal  [count]kitten.QQ // 今天的每一餐
 	}
 
 	// 统计数据集合
@@ -39,8 +39,8 @@ type (
 
 	// 食物数据
 	food struct {
-		ID   kitten.QQ             `yaml:"id"`   // QQ
-		Stat map[string][count]int `yaml:"stat"` // 每个角色的个人统计数据
+		ID   kitten.QQ             // QQ
+		Stat map[string][count]int // 每个角色的个人统计数据
 	}
 )
 

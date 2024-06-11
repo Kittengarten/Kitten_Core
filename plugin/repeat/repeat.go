@@ -2,7 +2,6 @@
 package repeat
 
 import (
-	"fmt"
 	"html"
 	"math/rand/v2"
 	"reflect"
@@ -15,7 +14,6 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	"github.com/RomiChan/syncx"
-	"gopkg.in/yaml.v3"
 
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -40,8 +38,8 @@ type (
 
 	// 复读姬配置
 	config struct {
-		Times  uint    `yaml:"times"`  // 触发复读的次数
-		Chance float64 `yaml:"chance"` // 触发复读的概率
+		Times  uint    // 触发复读的次数
+		Chance float64 // 触发复读的概率
 	}
 )
 
@@ -55,6 +53,8 @@ var (
 		Help:              help,
 		PrivateDataFolder: replyServiceName,
 	})
+	// 配置文件路径
+	configPath = core.FilePath(engine.DataFolder(), configFile)
 	// 触发复读的次数
 	times uint = 2
 	// 触发复读的概率
@@ -66,12 +66,7 @@ var (
 )
 
 func init() {
-	repeatConfig, err := load(configFile) // 复读姬配置文件
-	if nil == err {
-		times, chance = repeatConfig.Times, repeatConfig.Chance
-	} else {
-		kitten.Error(`加载复读姬配置文件错误喵！`, err)
-	}
+	repeatInit()
 
 	// 复读设置
 	engine.OnCommand(cRepeat, zero.SuperUserPermission).SetBlock(true).
@@ -79,6 +74,15 @@ func init() {
 
 	// 复读
 	engine.OnMessage(zero.OnlyGroup).SetBlock(false).Handle(repeat)
+}
+
+func repeatInit() {
+	repeatConfig, err := core.Load[config](configPath, core.Empty) // 复读姬配置文件
+	if nil != err {
+		kitten.Error(`加载复读姬配置文件错误喵！`, err)
+		return
+	}
+	times, chance = repeatConfig.Times, repeatConfig.Chance
 }
 
 // 复读设置
@@ -131,12 +135,12 @@ func repeatSet(ctx *zero.Ctx) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	err = config{
+	err = core.Save(configPath, config{
 		Times:  times,
 		Chance: chance,
-	}.save(ctx)
+	})
 	if nil != err {
-		kitten.SendWithImageFail(ctx, `I/O 错误：`, err)
+		kitten.SendWithImageFail(ctx, `保存复读姬配置文件错误喵！`, err)
 		return
 	}
 	kitten.SendTextOf(ctx, true, `%s将会开始以 %.2f%% 概率复读重复 %d 次的消息喵！`,
@@ -167,7 +171,7 @@ func repeat(ctx *zero.Ctx) {
 		if `image` != seg.Type {
 			continue
 		}
-		s.msg[i] = message.Image(html.UnescapeString(seg.Data[`url`]))
+		s.msg[i] = kitten.Image(html.UnescapeString(seg.Data[`url`]))
 	}
 	ctx.Send(s.msg)
 }
@@ -203,28 +207,4 @@ func compare(x, y message.Message) bool {
 		}
 	}
 	return true
-}
-
-// 加载复读姬配置
-func load(configFile string) (c config, err error) {
-	d, err := getPath(configFile).Read()
-	if nil != err {
-		return
-	}
-	err = yaml.Unmarshal(d, &c)
-	return
-}
-
-// 保存复读姬配置
-func (c config) save(ctx *zero.Ctx) error {
-	data, err := yaml.Marshal(c)
-	if nil != err {
-		kitten.SendWithImageFail(ctx, fmt.Errorf(`保存复读姬配置文件错误喵！%w`, err))
-	}
-	return getPath(configFile).Write(data)
-}
-
-// 获取路径
-func getPath(name string) core.Path {
-	return core.FilePath(engine.DataFolder(), name)
 }

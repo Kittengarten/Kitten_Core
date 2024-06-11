@@ -71,17 +71,16 @@ func POSTData(url, contentType string, body io.Reader) ([]byte, error) {
 }
 
 // 执行 HTTP 请求
-func doRequest(method, url, contentType string, body io.Reader) (res *http.Response, err error) {
+func doRequest(method, url, contentType string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if nil != err {
-		return
+		return nil, err
 	}
 	req.Header.Set(UA, UserAgent)
 	req.Header.Set(CT, contentType)
-	client := &http.Client{Timeout: TimeOutSeconds * time.Second}
-	res, err = client.Do(req)
+	res, err := (&http.Client{Timeout: TimeOutSeconds * time.Second}).Do(req)
 	if nil != err {
-		return
+		return nil, err
 	}
 	return res, checkError(res, url)
 }
@@ -89,6 +88,7 @@ func doRequest(method, url, contentType string, body io.Reader) (res *http.Respo
 // 判断 HTTP 错误
 func checkError(res *http.Response, url string) error {
 	if http.StatusOK <= res.StatusCode && http.StatusMultipleChoices > res.StatusCode {
+		// 不能处理 3xx 重定向状态码
 		return nil
 	}
 	defer res.Body.Close()
@@ -101,7 +101,11 @@ func checkError(res *http.Response, url string) error {
 
 // InnerText 在 *html.Node 中使用 XPath 获取文本
 func InnerText(top *html.Node, expr string) string {
-	return htmlquery.InnerText(htmlquery.FindOne(top, expr))
+	node := htmlquery.FindOne(top, expr)
+	if nil == node {
+		return ``
+	}
+	return htmlquery.InnerText(node)
 }
 
 // 获取网页 Node

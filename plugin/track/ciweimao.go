@@ -19,7 +19,7 @@ const (
 // 小说网页信息获取
 func (nv *novel) initCWM(bookID string) error {
 	// 初始化小说平台
-	nv.platform = cwm.String()
+	nv.platform = string(cwm)
 	// 向小说传入书号
 	nv.id = bookID
 	// 生成链接
@@ -80,10 +80,10 @@ func (nv *novel) initCWM(bookID string) error {
 	// 获取封面
 	nv.coverURL = core.InnerText(doc, `//a[@class="cover"]//img/@data-original`)
 	// 获取新章节链接
-	newChapter, err := htmlquery.Query(doc, `//h3[@class="tit"]/a[@target]/@href[1]`)
-	if nil != err {
+	newChapter := htmlquery.FindOne(doc, `//h3[@class="tit"]/a[@target]/@href[1]`)
+	if nil == newChapter {
 		// 如果新章节链接不存在，防止更新章节炸了跳转到网站首页引起程序报错
-		return fmt.Errorf(`新章节链接错误：%w%w`, errStatus(nv.url, noChapterURL), err)
+		return fmt.Errorf(`新章节链接错误：%w`, errStatus(nv.url, noChapterURL))
 	}
 	// 从章节池初始化章节，向章节传入本书链接
 	nv.newChapter = *chapterPool.Get().(*chapter)

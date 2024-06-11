@@ -15,7 +15,7 @@ const waifu = `https://www.thiswaifudoesnotexist.net/example-%d.jpg` // AI 随�
 
 // 发送 AI 随机老婆
 func sendWaifu(ctx *zero.Ctx) message.MessageID {
-	return kitten.SendMessage(ctx, true, message.Image(fmt.Sprintf(waifu, rand.IntN(100001))))
+	return kitten.SendMessage(ctx, true, kitten.Image(fmt.Sprintf(waifu, rand.IntN(100001))))
 }
 
 // 从 ctx 参数中的 URL 发送图片
@@ -25,7 +25,7 @@ func sendImage(ctx *zero.Ctx) {
 		kitten.SendWithImageFail(ctx, `权限不足喵！`)
 		return
 	}
-	kitten.SendMessage(ctx, true, message.Image(img))
+	kitten.SendMessage(ctx, true, kitten.Image(img))
 }
 
 // 扫码
@@ -64,6 +64,7 @@ func scanQRCode(ctx *zero.Ctx) message.MessageID {
 	for i, img := range imgs {
 		s, err := kitten.ScanQRCode(img)
 		if nil != err {
+			kitten.Error(err)
 			r[i] = err.Error()
 			continue
 		}

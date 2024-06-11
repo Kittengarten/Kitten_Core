@@ -13,8 +13,6 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/FloatTech/floatbox/process"
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -45,20 +43,14 @@ var (
 	// 指令前缀
 	p = kitten.MainConfig().CommandPrefix
 	// 帮助
-	help = fmt.Sprintf(`%s%s %s %s // 可获取信息
-%s%s %s %s // 可测试报更功能
-%s%s %s %s // 可预览更新内容
-%s%s // 可查询当前小说自动报更
+	help = p + cNovel + ` ` + pf + ` ` + ag + ` // 可获取信息
+` + p + cUpdateTest + ` ` + pf + ` ` + ag + ` // 可测试报更功能
+` + p + cUpdatePreview + ` ` + pf + ` ` + ag + ` // 可预览更新内容
+` + p + cQueryUpdate + ` // 可查询当前小说自动报更
 ————
 管理员或私聊可用：
-%s%s %s %s // 可添加小说自动报更
-%s%s %s %s // 可取消小说自动报更`,
-		p, cNovel, pf, ag,
-		p, cUpdateTest, pf, ag,
-		p, cUpdatePreview, pf, ag,
-		p, cQueryUpdate,
-		p, cAddUpdate, pf, ag,
-		p, cCancelUpdate, pf, ag)
+` + p + cAddUpdate + ` ` + pf + ` ` + ag + ` // 可添加小说自动报更
+` + p + cCancelUpdate + ` ` + pf + ` ` + ag + ` // 可取消小说自动报更`
 	// 注册插件
 	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault:  false,
@@ -66,6 +58,8 @@ var (
 		Help:              help,
 		PrivateDataFolder: replyServiceName,
 	}).ApplySingle(ctxext.DefaultSingle)
+	// 配置文件路径
+	configPath = core.FilePath(engine.DataFolder(), configFile)
 	// 报更更新的信号
 	cu = make(chan books)
 	// 读写锁
@@ -113,7 +107,10 @@ func updateTest(ctx *zero.Ctx) {
 		kitten.SendWithImageFail(ctx, err)
 		return
 	}
-	kitten.SendMessage(ctx, true, message.Image(nv.coverURL), message.Image(nv.headURL), message.Text(nv.update()))
+	kitten.SendMessage(ctx, true,
+		kitten.Image(nv.coverURL),
+		kitten.Image(nv.headURL),
+		kitten.Text(nv.update()))
 }
 
 // 更新预览
@@ -143,7 +140,7 @@ func novelInfo(ctx *zero.Ctx) {
 		kitten.SendWithImageFail(ctx, err)
 		return
 	}
-	kitten.SendMessage(ctx, true, message.Image(n.coverURL), message.Text(&n))
+	kitten.SendMessage(ctx, true, kitten.Image(n.coverURL), kitten.Text(&n))
 }
 
 // 添加报更
@@ -151,7 +148,7 @@ func add(ctx *zero.Ctx) {
 	o := kitten.GetObject(ctx) // 发送对象
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := loadConfig(configFile) // 报更配置
+	c, err := core.Load[books](configPath, core.Empty) // 报更配置
 	if nil != err {
 		kitten.SendWithImageFail(ctx, errLoad, err)
 		return
@@ -169,21 +166,22 @@ func add(ctx *zero.Ctx) {
 			Platform: nv.platform,
 			BookID:   nv.id,
 			BookName: nv.name,
-			GroupID:  []int64{o},
+			Writer:   nv.writer,
+			Users:    []kitten.QQ{o},
 		})
 	} else {
 		// 已经有该小说
-		if slices.Contains(c[i].GroupID, o) {
-			// 已有该群号，无需添加
+		if slices.Contains(c[i].Users, o) {
+			// 已有该用户，无需添加
 			kitten.SendWithImageFailOf(ctx, `《`+nv.name+`》已经添加报更了喵！`)
 			return
 		}
-		// 尚无该群号，需要添加
-		c[i].GroupID = append(c[i].GroupID, o)
-		slices.Sort(c[i].GroupID)
+		// 尚无该用户，需要添加
+		c[i].Users = append(c[i].Users, o)
+		slices.Sort(c[i].Users)
 	}
-	if err := c.saveConfig(ctx); nil != err {
-		kitten.SendWithImageFail(ctx, `添加《`+nv.name+`》报更失败喵！`, err)
+	if err := c.saveConfig(); nil != err {
+		kitten.SendWithImageFail(ctx, `添加《`+nv.name+`》时`+errSave, err)
 		return
 	}
 	kitten.SendText(ctx, false, `添加《`+nv.name+`》报更成功喵！`)
@@ -194,13 +192,13 @@ func cancel(ctx *zero.Ctx) {
 	o := kitten.GetObject(ctx) // 发送对象
 	mu.Lock()
 	defer mu.Unlock()
-	c, err := loadConfig(configFile) // 报更配置
+	c, err := core.Load[books](configPath, core.Empty) // 报更配置
 	if nil != err {
 		kitten.SendWithImageFail(ctx, errLoad, err)
 		return
 	}
 	if 0 == len(c) {
-		ctx.Send(without)
+		kitten.SendText(ctx, false, without)
 		return
 	}
 	nv, err := getNovel(ctx) // 小说实例
@@ -216,22 +214,22 @@ func cancel(ctx *zero.Ctx) {
 		kitten.SendWithImageFailOf(ctx, `未在追更《`+nv.name+`》喵！`)
 		return
 	}
-	// 本群下标
-	gi := slices.Index(c[i].GroupID, o)
-	if -1 == gi {
+	// 用户下标
+	uid := slices.Index(c[i].Users, o)
+	if -1 == uid {
 		kitten.SendWithImageFailOf(ctx, `未在追更《`+nv.name+`》喵！`)
 		return
 	}
 	// 移除在当前发送对象的报更
-	if 0 < len(slices.Delete(c[i].GroupID, gi, 1+gi)) {
-		// 群号排序
-		slices.Sort(c[i].GroupID)
+	if 0 < len(slices.Delete(c[i].Users, uid, 1+uid)) {
+		// 用户排序
+		slices.Sort(c[i].Users)
 	} else {
 		// 如果移除后，不再有报更对象（也可能本来就没有报更对象），则整体移除该小说
 		c = slices.Delete(c, i, 1+i)
 	}
-	if nil != c.saveConfig(ctx) {
-		kitten.SendWithImageFail(ctx, `取消《`+nv.name+`》报更失败喵！`)
+	if err := c.saveConfig(); nil != err {
+		kitten.SendWithImageFail(ctx, `取消《`+nv.name+`》时`+errSave, err)
 		return
 	}
 	kitten.SendText(ctx, false, `取消《`+nv.name+`》报更成功喵！`)
@@ -241,14 +239,14 @@ func cancel(ctx *zero.Ctx) {
 func query(ctx *zero.Ctx) {
 	o := kitten.GetObject(ctx) // 发送对象
 	mu.RLock()
-	c, err := loadConfig(configFile) // 报更配置
+	c, err := core.Load[books](configPath, core.Empty) // 报更配置
 	mu.RUnlock()
 	if nil != err {
 		kitten.SendWithImageFail(ctx, errLoad, err)
 		return
 	}
 	if 0 == len(c) {
-		ctx.Send(without)
+		kitten.SendText(ctx, false, without)
 		return
 	}
 	const h = `【报更列表】`
@@ -256,20 +254,12 @@ func query(ctx *zero.Ctx) {
 	r.Grow(64 * len(c))
 	r.WriteString(h)
 	for _, b := range c {
-		if !slices.Contains(b.GroupID, o) {
-			// 如果本书不在本群报更，则直接遍历至下一本书
+		if !slices.Contains(b.Users, o) {
+			// 如果本书不在这里报更，则直接遍历至下一本书
 			continue
 		}
-		r.WriteString(`
-《` + b.BookName + `》
-平台：　　	` + b.Platform + `
-书号：　　	` + b.BookID + `
-上次更新：	` + fmt.Sprint(func() string {
-			if `` == b.UpdateTime {
-				return `未知`
-			}
-			return b.UpdateTime
-		}()))
+		r.WriteByte('\n')
+		r.WriteString(b.String())
 	}
 	kitten.SendText(ctx, true, &r)
 }
@@ -279,16 +269,17 @@ func query(ctx *zero.Ctx) {
 
 如果传入值不为书号，则先获取书号
 */
-func getNovel(ctx *zero.Ctx) (nv novel, err error) {
+func getNovel(ctx *zero.Ctx) (novel, error) {
 	args := slices.DeleteFunc(strings.Split(kitten.GetArgs(ctx), ` `),
 		func(s string) bool {
 			return `` == s
 		})
 	if 2 != len(args) {
-		return novel{}, fmt.Errorf(`本命令参数数量：%d
+		return novel{}, fmt.Errorf(`本命令参数数量：2
+%s %s
 传入的参数数量：%d
 参数数量错误喵！`,
-			2,
+			pf, ag,
 			len(args))
 	}
 	p := func() platform {
@@ -306,18 +297,15 @@ func getNovel(ctx *zero.Ctx) (nv novel, err error) {
 			return platform(args[0])
 		}
 	}()
-	if _, err = strconv.Atoi(args[1]); nil != err {
+	if _, err := strconv.Atoi(args[1]); nil != err {
 		kitten.Debugf(`获取小说时，参数字符串 %s 无法转换为书号，尝试作为搜索关键词`, args[1])
 		if args[1], err = keyword(args[1]).findBookID(p); nil != err {
 			return novel{}, err
 		}
 	}
-	nv = *novelPool.Get().(*novel)
+	nv := *novelPool.Get().(*novel)
 	defer novelPool.Put(&nv)
-	if err := nv.init(p, args[1]); nil != err {
-		return novel{}, err
-	}
-	return
+	return nv, nv.init(p, args[1])
 }
 
 // 报更
@@ -329,15 +317,12 @@ func track() {
 		}
 	}()
 	// 初始化报更配置文件
-	if err := func() error {
-		p := getPath(configFile)
-		return core.InitFile(&p, core.Empty)
-	}(); nil != err {
+	if err := core.InitFile(&configPath, core.Empty); nil != err {
 		kitten.Error(`初始化报更配置文件时发生错误喵！`, err)
 		return
 	}
 	mu.RLock()
-	data, err := loadConfig(configFile)
+	data, err := core.Load[books](configPath, core.Empty)
 	mu.RUnlock()
 	if nil != err {
 		kitten.Error(errLoad, err)
@@ -364,53 +349,59 @@ func track() {
 		case data = <-cu: // 接收到更新配置则使用
 		case <-t.C: // 接收到定时器信号则释放
 		}
-		for i, b := range data {
-			// 从小说池初始化小说
-			nv := *novelPool.Get().(*novel)
-			if err = nv.init(platform(b.Platform), b.BookID); nil != err {
-				kitten.Error(err)
-				continue
-			}
-			// 更新判定
-			if nv.newChapter.url == b.RecordURL {
-				continue
-			}
-			report := nv.update()
-			// 距上次更新时间小于等于 1 秒则不报更，防止异常信息发送
-			if time.Second > nv.timeGap {
-				continue
-			}
-			// 群号排序
-			slices.Sort(b.GroupID)
-			// 消息构造
-			msg := message.Message{
-				message.Image(nv.coverURL),
-				message.Image(nv.headURL),
-				message.Text(report),
-			}
-			for _, id := range b.GroupID {
-				core.RandomDelay(time.Second)
-				if 0 < id {
-					bot.SendGroupMessage(id, msg)
-					continue
-				}
-				bot.SendPrivateMessage(-id, msg)
-			}
-			// 写入小说更新数据
-			data[i].BookName = nv.name
-			data[i].RecordURL = nv.newChapter.url
-			data[i].UpdateTime = nv.newChapter.update.Format(core.Layout)
-			// 将小说重新收回小说池
-			novelPool.Put(&nv)
-			// 按更新时间倒序排列
-			data.SortByUpdate()
-			updateConfig, err := yaml.Marshal(data)
-			if nil != err {
-				kitten.Warnf(`记录 %s 失败喵！`, getPath(configFile))
-				continue
-			}
-			kitten.Infof(`记录 %s 成功喵！`, getPath(configFile))
-			getPath(configFile).Write(updateConfig)
+		data.report(bot) // 执行报更
+	}
+}
+
+// 执行报更
+func (c *books) report(ctx *zero.Ctx) {
+	for i, b := range *c {
+		// 从小说池初始化小说
+		var (
+			nv  = *novelPool.Get().(*novel)
+			err = nv.init(platform(b.Platform), b.BookID)
+		)
+		if nil != err {
+			kitten.Error(err)
+			continue
 		}
+		// 更新判定
+		if nv.newChapter.url == b.RecordURL {
+			continue
+		}
+		// 用户排序
+		slices.Sort(b.Users)
+		// 消息构造
+		msg := message.Message{
+			kitten.Image(nv.coverURL),
+			kitten.Image(nv.headURL),
+			kitten.Text(nv.update()),
+		}
+		// 距上次更新时间小于等于 1 秒则不报更，防止异常信息发送
+		if time.Second > nv.timeGap {
+			continue
+		}
+		for _, id := range b.Users {
+			core.RandomDelay(time.Second)
+			id.SendMessage(ctx, msg)
+		}
+		// 写入小说更新数据
+		(*c)[i].BookName = nv.name
+		(*c)[i].Writer = nv.writer
+		(*c)[i].RecordURL = nv.newChapter.url
+		(*c)[i].UpdateTime = nv.newChapter.update
+		// 将小说重新收回小说池
+		novelPool.Put(&nv)
+		// 按更新时间倒序排列
+		c.SortByUpdate()
+		// 异步保存配置
+		go func() {
+			err = c.saveConfig()
+		}()
+		if nil != err {
+			kitten.Error(errSave, err)
+			continue
+		}
+		kitten.Infof(`更新《` + nv.name + `》成功喵！`)
 	}
 }

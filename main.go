@@ -14,6 +14,7 @@ import (
 	// _ "github.com/Kittengarten/KittenCore/plugin/draw"    // 牌堆
 	_ "github.com/Kittengarten/KittenCore/plugin/eekda2" // XX 今天吃什么
 	// _ "github.com/Kittengarten/KittenCore/plugin/essence" // 精华消息
+	_ "github.com/Kittengarten/KittenCore/plugin/rcon"   // RCON
 	_ "github.com/Kittengarten/KittenCore/plugin/repeat" // 喵类的本质
 	_ "github.com/Kittengarten/KittenCore/plugin/stack2" // 叠猫猫
 	_ "github.com/Kittengarten/KittenCore/plugin/track"  // 小说报更
@@ -85,7 +86,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"           // 月幕galgame
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/yujn"            // 遇见API
 
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ai_reply" // 人工智能回复
+	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aireply" // 人工智能回复
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus" // 词典匹配回复
 
@@ -95,7 +96,7 @@ import (
 
 func init() {
 	// 启用 WebUI，不需要使用可以注释
-	go webctrl.RunGui(kitten.MainConfig().WebUI.URL)
+	go webctrl.RunGui(kitten.MainConfig().WebUI.Host)
 }
 
 func main() {

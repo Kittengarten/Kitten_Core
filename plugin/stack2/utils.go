@@ -21,7 +21,7 @@ func (m meow) String() string {
 	if cockroach == globalLocation {
 		return fmt.Sprintf(`【%s】	翼展 %.1f cm`, mapMeow[m.getTypeID(globalCtx)].str, itof(m.Weight))
 	}
-	return fmt.Sprintf(l10nReplacer(globalLocation).Replace(`%s	♥	%d	♥	%.1f kg	%s`),
+	return fmt.Sprintf(l10nReplacer(globalLocation).Replace(`%s	❤	%d	❤	%.1f kg	%s`),
 		m.TitleCardOrNickName(globalCtx), m.Int(), itof(m.Weight), mapMeow[m.getTypeID(globalCtx)].str)
 }
 
@@ -32,11 +32,11 @@ func (m meow) chanceFall(n meow) float64 {
 }
 
 /*
-检查是否因为叠猫猫失败摔下来
+检查是否因为叠猫猫失败摔下去
 
 m 为上方的猫猫，n 为下方的猫猫
 
-如果没有摔下来则返回 true
+如果没有摔下去则返回 true
 */
 func (m meow) checkFall(n meow) bool {
 	return m.chanceFall(n) <= rand.Float64()

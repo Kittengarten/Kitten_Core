@@ -4,8 +4,6 @@
 
 ## 使用方法
 
-所有指令均需要加上前缀（在 `config.yaml` 中可以设置），触发词不需要前缀。
-
 以 `Bot` 的昵称为开头的发言会被视为与 `Bot` 对话。
 
 由于项目中可能含有非 `ASCII` 字符文件名，可能需要执行 `git config --bool hooks.allownoascii true`。

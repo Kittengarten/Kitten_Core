@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/Kittengarten/KittenCore/kitten"
+	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
@@ -17,19 +18,17 @@ type compare struct {
 
 // 查询被吃次数
 func getStat(ctx *zero.Ctx) {
-	sp := getPath(statFile) // 路径
-	var s stat
 	mu.RLock()
-	defer mu.RLock()
-	if err := get(sp, &s); nil != err {
+	defer mu.RUnlock()
+	s, err := core.Load[stat](statPath, core.Empty)
+	if nil != err {
 		kitten.SendWithImageFail(ctx, err)
 	}
 	if i := slices.IndexFunc(s, func(f food) bool {
 		return ctx.Event.UserID == f.ID.Int()
 	}); 0 <= i {
-		cp := getPath(todayFile) // 路径
-		var c config
-		if err := get(cp, &c); nil != err {
+		c, err := core.Load[config](todayPath, core.Empty)
+		if nil != err {
 			kitten.SendWithImageFail(ctx, err)
 		}
 		for _, t := range c {
@@ -50,9 +49,8 @@ func getStat(ctx *zero.Ctx) {
 
 // 统计被吃次数
 func doStat(ctx *zero.Ctx, td today) {
-	sp := getPath(statFile) // 路径
-	var s stat
-	if err := get(sp, &s); nil != err {
+	s, err := core.Load[stat](statPath, core.Empty)
+	if nil != err {
 		kitten.SendWithImageFail(ctx, err)
 	}
 	var ok [count]bool
@@ -85,7 +83,7 @@ func doStat(ctx *zero.Ctx, td today) {
 	// 排序
 	s.sort()
 	// 写入文件
-	if err := set(s, sp); nil != err {
+	if err := core.Save(statPath, s); nil != err {
 		kitten.SendWithImageFail(ctx, err)
 	}
 }
@@ -113,8 +111,8 @@ func (s *stat) sort() {
 	})
 }
 
+// 比较
 func (f food) cmpStat() (c compare) {
-	c.sum = 0
 	for _, v := range f.Stat {
 		for _, n := range v {
 			c.sum += n
@@ -122,5 +120,5 @@ func (f food) cmpStat() (c compare) {
 			c.min = min(c.min, n)
 		}
 	}
-	return c
+	return
 }

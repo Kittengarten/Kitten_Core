@@ -8,15 +8,14 @@ import (
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 	zero "github.com/wdvxdr1123/ZeroBot"
-
-	"gopkg.in/yaml.v3"
 )
 
 var (
 	// 叠猫猫配置文件名
 	configFile = core.FilePath(`plugin`, replyServiceName, `config.yaml`)
 	// 叠猫猫配置文件
-	stackConfig, err = loadConfig(configFile)
+	stackConfig, err = core.Load[config](configFile, `gaptime: 1        # 每千克体重的休息时间（小时数）
+mingaptime: 1     # 最小休息时间（小时数）`)
 	// 图片路径
 	imagePath = core.FilePath(kitten.MainConfig().Path, replyServiceName, `image`)
 	// bot 配置
@@ -41,7 +40,7 @@ var (
 
 压坏了别的猫猫；
 被别的猫猫压坏；
-叠猫猫失败摔下来；
+叠猫猫失败摔下去；
 平地摔——
 这些情况需要休息 | N(0, 体重²) 小时 |（至少为 %d 小时）后，才能再次加入。`,
 		p, cStack, cMeow, cIn, cView, cAnalysis, cRank,
@@ -58,33 +57,6 @@ var (
 		Help:             help,
 		PublicDataFolder: `Stack2`,
 	})
+	// 数据路径
+	dataPath = core.FilePath(engine.DataFolder(), dataFile)
 )
-
-// 加载叠猫猫配置
-func loadConfig(p core.Path) (c config, err error) {
-	return load[config](p, `gaptime: 1        # 每千克体重的休息时间（小时数）
-mingaptime: 1     # 最小休息时间（小时数）`)
-}
-
-// 加载叠猫猫数据
-func loadData(p core.Path) (d data, err error) {
-	return load[data](p, core.Empty)
-}
-
-// 加载叠猫猫配置或数据，d 为默认值
-func load[T config | data](p core.Path, d string) (s T, err error) {
-	if err = core.InitFile(&p, d); nil != err {
-		return
-	}
-	b, err := core.Path(p).Read()
-	if nil != err {
-		return
-	}
-	err = yaml.Unmarshal(b, &s)
-	return
-}
-
-// 获取路径
-func getPath(name string) core.Path {
-	return core.FilePath(engine.DataFolder(), name)
-}

@@ -82,14 +82,14 @@ func init() {
 
 // 查看
 func view(ctx *zero.Ctx) {
-	switch func() (who string) {
-		who = core.CleanAll(kitten.GetArgs(ctx), false)
+	switch func() string {
+		who := core.CleanAll(kitten.GetArgs(ctx), false)
 		for _, n := range kitten.MainConfig().NickName {
 			if who == n {
 				who = nickname
 			}
 		}
-		return
+		return who
 	}() {
 	case nickname:
 		img, err := core.FilePath(kitten.MainConfig().Path, replyServiceName, `image`).
@@ -99,12 +99,12 @@ func view(ctx *zero.Ctx) {
 			kitten.SendWithImageFail(ctx, err)
 			return
 		}
-		kitten.SendMessage(ctx, true, img, message.Text(viewString()))
+		kitten.SendMessage(ctx, true, img, kitten.Text(viewString()))
 	case `鸡汤`:
 		send(ctx, jiTang, false)
 	case `情话`:
 		send(ctx, qingHua, false)
-	case `疯狂星期四`:
+	case `疯狂星期四`, `疯四`:
 		if time.Now().Weekday() != time.Thursday {
 			// 如果不是星期四，则不发送
 			kitten.SendWithImageFail(ctx, `今天不是星期四喵！`)

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -15,10 +16,15 @@ import (
 
 // 吃猫猫执行逻辑
 func eatExe(ctx *zero.Ctx) {
+	if !setGlobalLocation(kitten.GetArgs(ctx)) {
+		// 设置全局地区标记位，如当前活动未开放则返回
+		kitten.SendWithImageFail(ctx, `当前活动未开放喵！`)
+		return
+	}
 	globalCtx = ctx
 	Mu.Lock()
 	defer Mu.Unlock()
-	d, err := loadData(getPath(dataFile))
+	d, err := core.Load[data](dataPath, core.Empty)
 	if nil != err {
 		sendWithImageFail(ctx, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
@@ -48,7 +54,7 @@ func (d *data) eat(ctx *zero.Ctx) message.MessageID {
 	// 合并当前未叠猫猫与叠猫猫的队列，将老虎追加入切片中
 	*d = slices.Concat(dn, *d, data{k})
 	// 存储叠猫猫数据
-	if err = d.save(getPath(dataFile)); nil != err {
+	if err := core.Save(dataPath, d); nil != err {
 		return sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)
 	}
 	return message.MessageID{}
@@ -95,7 +101,7 @@ func (d *data) doEat(ctx *zero.Ctx, k *meow) bool {
 	exit(ctx, k, eat, w)
 	var r strings.Builder
 	if 0 == w {
-		r.WriteString(fmt.Sprintf(`吃猫猫失败，杂鱼～杂鱼♥需要休息 %s。`,
+		r.WriteString(fmt.Sprintf(`吃猫猫失败，杂鱼～杂鱼❤需要休息 %s。`,
 			core.ConvertTimeDuration(k.Time.Sub(time.Unix(ctx.Event.Time, 0)))))
 		doClear(l, c, k.Weight, k, &r)
 		r.WriteRune('🐅')

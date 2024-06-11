@@ -85,7 +85,7 @@ func (u *QQ) updateInfo(ctx *zero.Ctx) {
 
 // （私有）获取群成员信息
 func (u *QQ) memberInfo(ctx *zero.Ctx) qqInfo {
-	list := MemberList(ctx)
+	list := MemberList(ctx, ctx.Event.GroupID)
 	if 0 == len(list.List) {
 		// 如果本群成员列表为空，退化至陌生人
 		return u.info(ctx)
@@ -102,6 +102,11 @@ func (u *QQ) memberInfo(ctx *zero.Ctx) qqInfo {
 		Info: list.List[i],
 		T:    list.T,
 	}
+}
+
+// IsQQ 是 QQ
+func (u *QQ) IsQQ() bool {
+	return 0 < *u
 }
 
 // Age 获取年龄
@@ -154,31 +159,31 @@ func (u *QQ) TitleCardOrNickName(ctx *zero.Ctx) string {
 	return title + name
 }
 
-// MemberList 获取群成员列表
-func MemberList(ctx *zero.Ctx) groupList {
+// MemberList 获取特定群的成员列表
+func MemberList(ctx *zero.Ctx, groupID int64) groupList {
 	if !CheckCtx(ctx, Caller) {
 		// 没有 APICaller ，无法获取
 		return groupList{}
 	}
 	// 从缓存获取该群成员列表
-	gmi, ok := GroupMemberList.Load(ctx.Event.GroupID)
+	gmi, ok := GroupMemberList.Load(groupID)
 	if !ok {
 		// 如果获取不到，同步更新
-		updateMemberList(ctx)
-		gmi, _ = GroupMemberList.Load(ctx.Event.GroupID)
+		updateMemberList(ctx, groupID)
+		gmi, _ = GroupMemberList.Load(groupID)
 	}
 	// 如果缓存已经过期，异步更新缓存的该群成员列表
 	if expire < time.Since(gmi.T) {
-		go updateMemberList(ctx)
+		go updateMemberList(ctx, groupID)
 	}
 	return gmi
 }
 
-// （私有）更新群成员列表
-func updateMemberList(ctx *zero.Ctx) {
-	GroupMemberList.Store(ctx.Event.GroupID,
+// （私有）更新特定群的成员列表
+func updateMemberList(ctx *zero.Ctx, groupID int64) {
+	GroupMemberList.Store(groupID,
 		groupList{
-			List: ctx.GetThisGroupMemberListNoCache().Array(),
+			List: ctx.GetGroupMemberListNoCache(groupID).Array(),
 			T:    time.Now(),
 		},
 	)

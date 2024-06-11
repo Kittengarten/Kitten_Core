@@ -63,7 +63,7 @@ func (e *stackErr) Error() string {
 	}
 	w := e.k.Weight // 叠猫猫前的体重
 	e.Grow(128)
-	e.WriteString(`叠猫猫失败，杂鱼～杂鱼♥`)
+	e.WriteString(`叠猫猫失败，杂鱼～杂鱼❤`)
 	switch e.r {
 	case flat:
 		// 如果平地摔
@@ -83,7 +83,7 @@ func (e *stackErr) Error() string {
 	case fall:
 		// 摔坏了别的猫猫
 		exit(e.ctx, e.k, e.r, e.l) // 让失败的猫猫退出
-		e.WriteString(fmt.Sprintf(`上面 %d 只猫猫摔下来了喵！需要休息一段时间。`, e.n))
+		e.WriteString(fmt.Sprintf(`上面 %d 只猫猫摔下去了喵！需要休息一段时间。`, e.n))
 		doClear(e.l, e.n, w, e.k, &e.Builder)
 		for range e.n {
 			e.WriteRune('😿')

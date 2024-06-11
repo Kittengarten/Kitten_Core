@@ -1,6 +1,7 @@
 package stack2
 
 import (
+	"cmp"
 	"fmt"
 	"time"
 
@@ -32,11 +33,14 @@ func setCard(ctx *zero.Ctx, h int) {
 }
 
 func card(ctx *zero.Ctx, h int) string {
-	if 0 < h {
+	switch cmp.Compare(0, h) {
+	case -1:
 		return fmt.Sprintf(`%s（%d岁）（猫堆高度：%d）`, botConfig.NickName[0], sid.Age(ctx), h)
-	}
-	if 0 == h {
+	case 0:
 		return fmt.Sprintf(`%s（%d岁）（猫堆已清空）`, botConfig.NickName[0], sid.Age(ctx))
+	case 1:
+		return fmt.Sprintf(`%s（%d岁）（内置冷却，禁止调戏）`, botConfig.NickName[0], sid.Age(ctx))
+	default:
+		return ``
 	}
-	return fmt.Sprintf(`%s（%d岁）（内置冷却，禁止调戏）`, botConfig.NickName[0], sid.Age(ctx))
 }

@@ -1,6 +1,6 @@
 module github.com/sirupsen/logrus
 
-go 1.22.3
+go 1.22.4
 
 require go.uber.org/zap v1.27.0
 

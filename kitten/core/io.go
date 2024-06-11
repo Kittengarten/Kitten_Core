@@ -3,15 +3,41 @@ package core
 import (
 	"bytes"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 
-	"github.com/wdvxdr1123/ZeroBot/message"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
+
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 type Path string // Path 是一个表示文件路径的字符串
+
+// 加载配置文件，def 为默认值
+func Load[T any](p Path, def string) (c T, err error) {
+	if err = InitFile(&p, def); nil != err {
+		return
+	}
+	data, err := p.ReadBytes()
+	if nil != err {
+		return
+	}
+	err = yaml.Unmarshal(data, &c)
+	return
+}
+
+// 保存配置文件
+func Save[T any](p Path, c T) error {
+	data, err := yaml.Marshal(c)
+	if nil != err {
+		return err
+	}
+	_, err = p.Write(data)
+	return err
+}
 
 // FilePath 文件路径构建
 func FilePath[T ~string](elem ...T) Path {
@@ -22,28 +48,84 @@ func FilePath[T ~string](elem ...T) Path {
 	return Path(filepath.Join(s...))
 }
 
-// Read 文件读取
-func (p Path) Read() ([]byte, error) {
+// ReadBytes 文件读取
+func (p Path) ReadBytes() ([]byte, error) {
 	return os.ReadFile(p.String())
 }
 
+// Read 实现 io.Reader 文件读取
+func (p Path) Read(b []byte) (int, error) {
+	// 打开文件
+	f, err := os.Open(p.String())
+	if nil != err {
+		return 0, err
+	}
+	defer f.Close()
+	// 读取文件
+	return f.Read(b)
+}
+
+// WriteTo 实现 io.WriterTo 向 io.Writer 写入数据
+func (p Path) WriteTo(w io.Writer) (int64, error) {
+	// 打开文件
+	f, err := os.Open(p.String())
+	if nil != err {
+		return 0, err
+	}
+	defer f.Close()
+	return f.WriteTo(w)
+}
+
 /*
-Write 文件写入
+Write 实现 io.Writer 文件写入
 
 如文件不存在会尝试新建
 */
-func (p Path) Write(data []byte) error {
+func (p Path) Write(b []byte) (int, error) {
+	// 检查文件夹是否存在，不存在则创建
+	if err := p.tryMkDir(); nil != err {
+		return 0, err
+	}
+	// 打开文件，如不存在则尝试创建文件
+	f, err := os.Create(p.String())
+	if nil != err {
+		return 0, err
+	}
+	defer f.Close()
+	return f.Write(b)
+}
+
+/*
+ReadFrom 实现 io.ReaderFrom 从 io.Reader 读取数据
+
+如文件不存在会尝试新建
+*/
+func (p Path) ReadFrom(r io.Reader) (int64, error) {
+	// 检查文件夹是否存在，不存在则创建
+	if err := p.tryMkDir(); nil != err {
+		return 0, err
+	}
+	// 打开文件，如不存在则尝试创建文件
+	f, err := os.Create(p.String())
+	if nil != err {
+		return 0, err
+	}
+	defer f.Close()
+	return f.ReadFrom(r)
+}
+
+// 检查文件夹是否存在，不存在则创建
+func (p Path) tryMkDir() error {
 	// 检查文件夹是否存在，不存在则创建
 	if err := os.MkdirAll(filepath.Dir(p.String()), 0o755); nil != err {
 		return err
 	}
-	// 写入文件
-	return os.WriteFile(p.String(), data, 0o644)
+	return nil
 }
 
 // Exists 判断文件或文件夹是否存在
 func (p Path) Exists() (bool, error) {
-	_, err := os.Stat(p.String())
+	_, err := p.isDir()
 	if nil == err {
 		// 文件或文件夹存在
 		return true, nil
@@ -59,15 +141,17 @@ func (p Path) Exists() (bool, error) {
 // （私有）判断路径是否文件夹
 func (p Path) isDir() (bool, error) {
 	info, err := os.Stat(p.String())
-	if nil != err {
-		return false, err
-	}
 	return info.IsDir(), err
+}
+
+// String 实现 fmt.Stringer，返回路径规范化后的字符串表示
+func (p Path) String() string {
+	return filepath.Clean(filepath.Join(string(p)))
 }
 
 // LoadPath 加载文件中保存的相对路径或绝对路径
 func (p Path) LoadPath() (Path, error) {
-	data, err := p.Read()
+	data, err := p.ReadBytes()
 	if nil != err {
 		return p, err
 	}
@@ -77,7 +161,7 @@ func (p Path) LoadPath() (Path, error) {
 	return FilePath(Path(data)), nil
 }
 
-// Image 从图片的相对/绝对路径，或相对/绝对路径文件中保存的相对/绝对路径加载图片
+// Image 从图片的相对 | 绝对路径（文件夹），或相对 | 绝对路径文件中保存的相对 | 绝对路径加载图片
 func (p Path) Image(name Path) (message.MessageSegment, error) {
 	if filepath.IsAbs(p.String()) {
 		isDir, err := p.isDir()
@@ -95,11 +179,6 @@ func (p Path) Image(name Path) (message.MessageSegment, error) {
 	}
 	p, err := p.LoadPath()
 	return message.Image(FilePath(p, name).String()), err
-}
-
-// String 实现 fmt.Stringer，返回路径规范化后的字符串表示
-func (p Path) String() string {
-	return filepath.Clean(filepath.Join(string(p)))
 }
 
 /*
@@ -131,7 +210,8 @@ func InitFile(name *Path, text string) error {
 		}
 	}
 	// 如果文件不存在 && (是绝对路径 || 不是绝对路径但在上一级目录不存在)，初始化该文件
-	return (*name).Write([]byte(text))
+	_, err = (*name).Write([]byte(text))
+	return err
 }
 
 /*
@@ -153,7 +233,7 @@ func (p Path) GetString(d string) string {
 		zap.S().Errorf(`初始化文件 %s 失败了喵！%s`, p, err)
 		return d
 	}
-	f, err := p.Read()
+	f, err := p.ReadBytes()
 	if nil != err {
 		zap.S().Errorf(`打开文件 %s 失败了喵！%s`, p, err)
 		return d
@@ -162,11 +242,11 @@ func (p Path) GetString(d string) string {
 }
 
 // GetImage 从 url 下载图片到 path
-func GetImage(url string, path Path) error {
+func GetImage(url string, path Path) (int, error) {
 	// 获取 HTTP 响应体，失败则返回
 	d, err := GETData(url)
 	if nil != err {
-		return err
+		return 0, err
 	}
 	return path.Write(d)
 }

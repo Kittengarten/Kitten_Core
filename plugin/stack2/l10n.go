@@ -2,84 +2,112 @@ package stack2
 
 import (
 	"strings"
-	"sync"
 	"time"
 )
 
 type loc byte // 地区
 
-const cockroachDoNotAnalysis = `蟑螂不会分析，蟑螂只会勇敢地创上去`
-
 const (
-	cat       loc = iota // 叠猫猫
-	cockroach            // 叠蟑螂
+	cockroachDoNotAnalysis     = `蟑螂不会分析，蟑螂只会勇敢地创上去`
+	cat                    loc = iota // 叠猫猫
+	fox                               // 叠狐狐
+	gpu                               // 叠显卡
+	cockroach                         // 叠蟑螂
 )
 
 var (
-	// 各地区的字符串
-	l10nStr = map[string]map[loc]string{
-		`猫猫`:         {cat: `猫猫`, cockroach: `蟑螂`},
-		`压坏`:         {cat: `压坏`, cockroach: `压爆浆`},
-		`体重`:         {cat: `体重`, cockroach: `翼展`},
-		`绒布球`:        {cat: `绒布球`, cockroach: `蟑螂卵鞘`},
-		`奶猫`:         {cat: `奶猫`, cockroach: `德国蟑螂`},
-		`抱枕`:         {cat: `抱枕`, cockroach: `美洲蟑螂`},
-		`小可爱`:        {cat: `小可爱`, cockroach: `广东蟑螂`},
-		`大可爱`:        {cat: `大可爱`, cockroach: `澳洲蟑螂`},
-		`幼年猫娘`:       {cat: `幼年猫娘`, cockroach: `幼年蟑螂娘`},
-		`猫娘萝莉`:       {cat: `猫娘萝莉`, cockroach: `蟑螂萝莉`},
-		`猫娘少女`:       {cat: `猫娘少女`, cockroach: `蟑螂少女`},
-		`成年猫娘`:       {cat: `成年猫娘`, cockroach: `成年蟑螂娘`},
-		`小老虎`:        {cat: `小老虎`, cockroach: `精英蟑螂娘`},
-		`大老虎`:        {cat: `大老虎`, cockroach: `蟑螂母体`},
-		`猫车`:         {cat: `猫车`, cockroach: `蟑螂恶霸`},
-		`猫猫巴士`:       {cat: `猫猫巴士`, cockroach: `蟑螂基地车`},
-		`猫卡`:         {cat: `猫卡`, cockroach: `蟑螂运输船`},
-		`虎式坦克`:       {cat: `虎式坦克`, cockroach: `蟑螂轨道炮`},
-		`■■■`:        {cat: `■■■`, cockroach: `蟑螂歼星舰`},
-		`发生平地摔`:      {cat: `发生平地摔`, cockroach: `翻了个身`},
-		`猫堆`:         {cat: `猫堆`, cockroach: `蟑螂巢穴`},
-		`触发特效`:       {cat: `触发特效`, cockroach: `获得康复新液`},
-		`猫娘`:         {cat: `猫娘`, cockroach: `蟑螂娘`},
-		`平地摔`:        {cat: `平地摔`, cockroach: `翻了个身`},
-		`休息`:         {cat: `休息`, cockroach: `蛰伏`},
-		`kg`:         {cat: `kg`, cockroach: `cm`},
-		`触发了清空猫堆的特效`: {cat: `触发了清空猫堆的特效`, cockroach: `获得了康复新液`},
-		`平地摔了喵`:      {cat: `平地摔了喵`, cockroach: `翻了个身`},
-		`🙀`:          {cat: `🙀`, cockroach: `🪳`},
-		`😿`:          {cat: `😿`, cockroach: `🪳`},
-		`🐅`:          {cat: `🐅`, cockroach: `🪳`},
-		`🐯`:          {cat: `🐯`, cockroach: `🪳`},
-		`喵！`:         {cat: `喵！`, cockroach: `！`},
-		`喵～`:         {cat: `喵～`, cockroach: `～`},
-		`总重量为`:       {cat: `总重量为`, cockroach: `总长度为`},
-		`老虎`:         {cat: `老虎`, cockroach: `精英级以上蟑螂`},
+	// 各地区的字符串，运行时不可修改
+	l10nStr = [...]map[loc]string{
+		{cat: `猫猫`, fox: `狐狐`, gpu: `显卡`, cockroach: `蟑螂`},
+		{cat: `只猫猫`, fox: `只狐狐`, gpu: `张显卡`},
+		{cat: `平地摔了喵`, gpu: `超到了5G`, fox: `平地摔了嘤`, cockroach: `翻了个身`},
+		{cat: `发生平地摔`, gpu: `超到了5G`, cockroach: `翻了个身`},
+		{cat: `的平地摔`, gpu: `要超5G`},
+		{cat: `平地摔`, gpu: `超5G`, cockroach: `翻了个身`},
+		{cat: `触发了清空猫堆的特效`, fox: `获取了秘籍`, cockroach: `获得了康复新液`},
+		{cat: `触发特效`, gpu: `打了鸡血驱动`, cockroach: `获得康复新液`},
+		{cat: `猫堆高度`, gpu: `插槽容量`},
+		{cat: `猫堆`, fox: `狐堆`, gpu: `PCIe`, cockroach: `蟑螂巢穴`},
+		{cat: `压坏概率`, gpu: `冒烟概率`},
+		{cat: `压坏`, gpu: `超冒烟`, cockroach: `压爆浆`},
+		{cat: `体重为`, fox: `修为有`},
+		{cat: `体重`, fox: `修为`, gpu: `算力`, cockroach: `翼展`},
+		{cat: `绒布球`, gpu: `亮机卡`, cockroach: `蟑螂卵鞘`},
+		{cat: `奶猫`, fox: `奶狐`, gpu: `GT1030`, cockroach: `德国蟑螂`},
+		{cat: `抱枕`, gpu: `GT1630`, cockroach: `美洲蟑螂`},
+		{cat: `小可爱`, gpu: `GTX1060`, cockroach: `广东蟑螂`},
+		{cat: `大可爱`, gpu: `RTX2060`, cockroach: `澳洲蟑螂`},
+		{cat: `幼年猫娘`, fox: `幼年狐娘`, gpu: `RTX3060`, cockroach: `幼年蟑螂娘`},
+		{cat: `猫娘萝莉`, fox: `狐娘萝莉`, gpu: `RTX4060`, cockroach: `蟑螂萝莉`},
+		{cat: `猫娘少女`, fox: `狐娘少女`, gpu: `RTX4060Ti`, cockroach: `蟑螂少女`},
+		{cat: `成年猫娘`, fox: `二尾狐娘`, gpu: `RTX4070`, cockroach: `成年蟑螂娘`},
+		{cat: `小老虎`, fox: `三尾狐娘`, gpu: `RTX4070S`, cockroach: `精英蟑螂娘`},
+		{cat: `大老虎`, fox: `四尾狐娘`, gpu: `RTX4070Ti`, cockroach: `蟑螂母体`},
+		{cat: `猫车`, fox: `五尾狐娘`, gpu: `RTX4070TiS`, cockroach: `蟑螂恶霸`},
+		{cat: `猫猫巴士`, fox: `六尾狐娘`, gpu: `RTX4080`, cockroach: `蟑螂基地车`},
+		{cat: `猫卡`, fox: `七尾狐娘`, gpu: `RTX4080S`, cockroach: `蟑螂运输船`},
+		{cat: `虎式坦克`, fox: `八尾狐娘`, gpu: `RTX4080Ti`, cockroach: `蟑螂轨道炮`},
+		{cat: `■■■`, fox: `九尾狐娘`, gpu: `RTX4090`, cockroach: `蟑螂歼星舰`},
+		{cat: `猫娘以上`, gpu: `中高端显卡`},
+		{cat: `猫娘`, fox: `狐娘`, gpu: `中高端显卡`, cockroach: `蟑螂娘`},
+		{cat: `休息`, fox: `闭关`, gpu: `断电`, cockroach: `蛰伏`},
+		{cat: `活动`, fox: `出关`, gpu: `通电`},
+		{cat: `kg`, fox: `年`, gpu: `TFLOPS`, cockroach: `cm`},
+		{cat: `🙀`, fox: `🦊`, gpu: `🖼️`, cockroach: `🪳`},
+		{cat: `😿`, fox: `🦊`, gpu: `🧩`, cockroach: `🪳`},
+		{cat: `🐅`, fox: `🦊`, gpu: `🎨`, cockroach: `🪳`},
+		{cat: `🐯`, fox: `🦊`, gpu: `📦`, cockroach: `🪳`},
+		{cat: `喵！`, fox: `嘤！`, gpu: `！`, cockroach: `！`},
+		{cat: `喵～`, fox: `嘤～`, gpu: `～`, cockroach: `～`},
+		{cat: `总重量为`, fox: `总修为有`, gpu: `总算力为`, cockroach: `总长度为`},
+		{cat: `小猫咪`, gpu: `低功耗显卡`},
+		{cat: `小猫`, gpu: `刀卡`},
+		{cat: `摔成绒布球`, gpu: `沦为亮机卡`},
+		{cat: `猫咪`, fox: `狐狸`, gpu: `显卡`},
+		{cat: `有老虎`, fox: `有狐仙`, gpu: `有显卡`},
+		{cat: `饿`, gpu: `花`},
+		{cat: `嗷呜`, gpu: `加电压`},
+		{cat: `美味`, gpu: `崭新`},
+		{cat: `被老虎吃掉`, fox: `被狐仙吃掉`, gpu: `被拉去炼丹`},
+		{cat: `老虎`, fox: `三尾以上狐娘`, gpu: `高端卡`, cockroach: `精英级以上蟑螂`},
+		{cat: `今天吃猫`, gpu: `加卡加卡`},
+		{cat: `吃掉`, gpu: `NVLink`},
+		{cat: `吃掉`, gpu: `抢走`},
+		{cat: `吃`, gpu: `抢`},
+		{cat: `猫`, fox: `狐`, gpu: `卡`},
+		{cat: `猫咪胖胖`, fox: `修为大增`, gpu: `算力暴涨`},
+		{cat: `摔下去`, gpu: `掉驱动`},
+		{cat: `摔下`, gpu: `掉驱`},
+		{cat: `她`, gpu: `它`},
+		{cat: `别的猫猫`, gpu: ``},
+		{cat: `减肥`, gpu: `降频`},
+		{cat: `长大`, gpu: `超频`},
+		{cat: `猪咪`, gpu: `核弹`},
+		{cat: `猪咪王`, gpu: `战术核显卡`},
+		{cat: `猪`, gpu: `矿卡`},
+		{cat: `压`, gpu: `超`},
+		{cat: `摔`, gpu: `掉`},
+		{cat: `床头叠上床尾摔`, gpu: `核心超上显存崩`},
 	}
 	// 字符替换器
 	l10nReplacer = func(l loc) *strings.Replacer {
-		return strings.NewReplacer(mapToSlice(l10nStr, l)...)
+		return strings.NewReplacer(mapToSlice(l10nStr[:], l)...)
 	}
 	// 地区标记位
 	globalLocation loc
-	// 地区互斥锁
-	muLocation sync.Mutex
 )
 
-func mapToSlice(m map[string]map[loc]string, l loc) (s []string) {
+func mapToSlice(m []map[loc]string, l loc) (s []string) {
 	if cat == l {
 		// 叠猫猫无需替换
 		return
 	}
 	for _, v := range m {
-		old, ok := v[cat]
-		if !ok {
-			continue
-		}
 		new, ok := v[l]
 		if !ok {
 			continue
 		}
-		s = append(s, []string{old, new}...)
+		s = append(s, []string{v[cat], new}...)
 	}
 	return
 }

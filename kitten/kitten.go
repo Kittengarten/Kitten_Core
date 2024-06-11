@@ -13,14 +13,15 @@ import (
 const configFile = `config.yaml`
 
 var (
-	botConfig config    // 来自 Bot 的配置文件
-	imagePath core.Path // 图片路径
-	Weight    int       // 自身叠猫猫体重（0.1kg 数）
+	botConfig   config              // 来自 Bot 的配置文件
+	ImageFolder core.Path = `image` // 图片文件夹名
+	imagePath   core.Path           // 图片路径
+	Weight      int                 // 自身叠猫猫体重（0.1kg 数）
 )
 
 func init() {
 	// 配置文件加载
-	d, err := core.Path(configFile).Read()
+	d, err := core.Path(configFile).ReadBytes()
 	if nil != err {
 		fmt.Println(err, `请配置`, configFile, `后重新启动喵！`)
 	}
@@ -31,19 +32,26 @@ func init() {
 		fmt.Println(`请在`, configFile, `中配置 superusers 喵！`)
 	}
 	if 0 == len(botConfig.NickName) {
+		fmt.Println(`没有配置昵称，使用默认昵称喵！`)
 		botConfig.NickName = []string{`喵喵`}
 	}
 	if _, err := url.Parse(botConfig.WebSocket.URL); nil != err {
 		fmt.Println(err, `请正确配置 `, configFile, ` 中的 websocket.url 喵！`)
 	}
-	if _, err := url.Parse(botConfig.WebUI.URL); nil != err {
+	if _, err := url.Parse(`http://` + botConfig.WebUI.Host); nil != err {
 		fmt.Println(err, `请正确配置`, configFile, `中的 webui.url 喵！`)
 	}
+	fmt.Println(`当前配置：`, botConfig)
 	// 图片路径
-	imagePath = core.FilePath(botConfig.Path, `image`)
+	imagePath = core.FilePath(botConfig.Path, ImageFolder)
 }
 
 // MainConfig 获取主配置
 func MainConfig() config {
 	return botConfig
+}
+
+// ImagePath 获取图片路径
+func ImagePath() core.Path {
+	return imagePath
 }

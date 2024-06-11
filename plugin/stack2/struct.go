@@ -9,7 +9,7 @@ import (
 
 const (
 	flat    result = iota // 平地摔
-	fall                  // 摔下来
+	fall                  // 摔下去
 	press                 // 压坏
 	pressed               // 被压坏
 	eat                   // 吃猫猫
@@ -69,8 +69,8 @@ type (
 
 	// 叠猫猫配置
 	config struct {
-		GapTime    int `yaml:"gaptime"`    // 每千克体重的冷却时间（小时数）
-		MinGapTime int `yaml:"mingaptime"` // 最小冷却时间（小时数）
+		GapTime    int // 每千克体重的冷却时间（小时数）
+		MinGapTime int // 最小冷却时间（小时数）
 	}
 
 	data []meow // 叠猫猫数据
@@ -78,20 +78,20 @@ type (
 	// 猫猫数据值
 	meow struct {
 		kitten.QQ `yaml:"id"` // QQ
-		Name      string      `yaml:"name"`   // 群名片或昵称
-		Weight    int         `yaml:"weight"` // 体重（0.1kg 数）
-		Status    bool        `yaml:"status"` // 是否在叠猫猫中
-		Time      time.Time   `yaml:"time"`   // 如果在叠猫猫中，叠入的时间；如果不在叠猫猫中，冷却结束的时间
+		Name      string      // 群名片或昵称
+		Weight    int         // 体重（0.1kg 数）
+		Status    bool        // 是否在叠猫猫中
+		Time      time.Time   // 如果在叠猫猫中，叠入的时间；如果不在叠猫猫中，冷却结束的时间
 		// Stat             // 统计信息
 	}
 
 	// Stat 统计信息
 	Stat struct {
-		In        `yaml:"in"`   // 加入次数
-		Exit      `yaml:"exit"` // 退出次数
-		Time      time.Time     `yaml:"time"`      // 总时长
-		Max       int           `yaml:"max"`       // 曾经达到的最大高度
-		MaxWeight int           `yaml:"maxweight"` // 曾经达到的最大重量
+		In                  // 加入次数
+		Exit                // 退出次数
+		Time      time.Time // 总时长
+		Max       int       // 曾经达到的最大高度
+		MaxWeight int       // 曾经达到的最大重量
 	}
 
 	// In 加入统计信息

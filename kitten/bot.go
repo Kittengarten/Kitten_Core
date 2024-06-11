@@ -35,22 +35,12 @@ func Restart(s string) {
 	}
 }
 
-/*
-Text 构建 message.MessageSegment 文本
-
-格式同 fmt.Sprint
-*/
-func Text(text ...any) message.MessageSegment {
-	return message.Text(text...)
-}
-
-/*
-TextOf 格式化构建 message.MessageSegment 文本
-
-格式同 fmt.Sprintf
-*/
-func TextOf(format string, a ...any) message.MessageSegment {
-	return message.Text(fmt.Sprintf(format, a...))
+// SendMessage 向 QQ（负数代表群聊）发送消息
+func (u *QQ) SendMessage(ctx *zero.Ctx, message any) int64 {
+	if u.IsQQ() {
+		return ctx.SendPrivateMessage(u.Int(), message)
+	}
+	return ctx.SendGroupMessage(-u.Int(), message)
 }
 
 /*
@@ -61,10 +51,9 @@ lf 控制群聊的 @ 后是否换行
 非消息的上下文中获取的 bot 实例无事件，不可使用
 */
 func SendText(ctx *zero.Ctx, lf bool, text ...any) message.MessageID {
-	checkErr(text)
 	if !CheckCtx(ctx, Event) || !CheckCtx(ctx, Caller) {
 		// 没有事件或 APICaller ，无法发送
-		Info(text...)
+		Warn(text...)
 		return message.NewMessageIDFromInteger(0)
 	}
 	switch atUser := message.At(ctx.Event.UserID); ctx.Event.DetailType {
@@ -88,10 +77,9 @@ lf 控制群聊的 @ 后是否换行
 非消息的上下文中获取的 bot 实例无事件，不可使用
 */
 func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) message.MessageID {
-	checkErr(a)
 	if !CheckCtx(ctx, Event) || !CheckCtx(ctx, Caller) {
 		// 没有事件或 APICaller ，无法发送
-		Infof(format, a...)
+		Warnf(format, a...)
 		return message.NewMessageIDFromInteger(0)
 	}
 	switch atUser := message.At(ctx.Event.UserID); ctx.Event.DetailType {
@@ -117,7 +105,7 @@ lf 控制群聊的 @ 后是否换行
 func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) message.MessageID {
 	if !CheckCtx(ctx, Event) || !CheckCtx(ctx, Caller) {
 		// 没有事件或 APICaller ，无法发送
-		Info(m)
+		Warn(m)
 		return message.NewMessageIDFromInteger(0)
 	}
 	switch messageChain := []message.MessageSegment{message.At(ctx.Event.UserID)}; ctx.Event.DetailType {
@@ -125,7 +113,7 @@ func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) message.Me
 		return ctx.Send(m)
 	case DetailTypeGroup, DetailTypeGuild:
 		if lf {
-			return ctx.SendChain(append(append(messageChain, message.Text("\n")), m...)...)
+			return ctx.SendChain(append(append(messageChain, Text("\n")), m...)...)
 		}
 		fallthrough
 	default:
@@ -143,7 +131,6 @@ func SendWithImage(ctx *zero.Ctx, name core.Path, text ...any) message.MessageID
 	if nil != err {
 		return SendText(ctx, true, err)
 	}
-	checkErr(text)
 	return SendMessage(ctx, true, img, Text(text...))
 }
 
@@ -157,7 +144,6 @@ func SendWithImageOf(ctx *zero.Ctx, name core.Path, format string, a ...any) mes
 	if nil != err {
 		return SendText(ctx, true, err)
 	}
-	checkErr(a)
 	return SendMessage(ctx, true, img, TextOf(format, a...))
 }
 
@@ -187,21 +173,21 @@ func DoNotKnow(ctx *zero.Ctx) message.MessageID {
 /*
 GetObject 获取发送对象
 
-返回正整数代表群，返回负整数代表私聊
+返回正整数代表私聊，返回负整数代表群聊
 
 返回默认值 0 代表不支持的对象
 （非消息的事件中获取的 bot 实例 | 频道）
 */
-func GetObject(ctx *zero.Ctx) int64 {
+func GetObject(ctx *zero.Ctx) QQ {
 	if !CheckCtx(ctx, Event) {
 		// 没有事件，无法获取
 		return 0
 	}
 	switch ctx.Event.DetailType {
 	case DetailTypePrivate:
-		return -ctx.Event.UserID
+		return QQ(ctx.Event.UserID)
 	case DetailTypeGroup:
-		return ctx.Event.GroupID
+		return QQ(-ctx.Event.GroupID)
 	default:
 		return 0
 	}
@@ -246,22 +232,13 @@ func GetImageURL(ctx *zero.Ctx) []string {
 	return GetSth[[]string](ctx, `image_url`)
 }
 
-// 检查接口中是否存在错误，如果有则记录至日志
-func checkErr(v []any) {
-	for _, i := range v {
-		if err, ok := i.(error); ok {
-			Error(err)
-		}
-	}
-}
-
 // ScanQRCode 扫描二维码
 func ScanQRCode(name string) (fmt.Stringer, error) {
 	var (
-		msg = message.Image(name)
+		msg = Image(name)
 		n   = core.FilePath(`data`, `zbp`, `code.png`)
 	)
-	if err := core.GetImage(msg.Data[`file`], n); nil != err {
+	if _, err := core.GetImage(msg.Data[`file`], n); nil != err {
 		return core.Path(msg.Data[`file`]), err
 	}
 	imgfile, err := os.Open(n.String())

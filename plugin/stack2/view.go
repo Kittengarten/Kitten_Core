@@ -15,46 +15,44 @@ import (
 
 // 查看叠猫猫
 func (d *data) view(ctx *zero.Ctx, all bool) {
-	var (
-		s = d.getStack() // 获取叠猫猫队列
-		v any            // 内容
-	)
-	if all {
-		// 查看全部
-		v = &s
-	} else {
-		// 查看省略版
-		v = s.Str()
-	}
+	s := d.getStack() // 获取叠猫猫队列
 	sendTextOf(ctx, true, `【叠猫猫队列】
 现在有 %d 只猫猫
 总重量为 %.1f kg
 ————%s`,
 		len(s),
 		itof(s.totalWeight()),
-		v)
+		func() any {
+			if all {
+				// 查看全部
+				return &s
+			}
+			// 查看省略版
+			return s.Str()
+		}())
 	go setCard(ctx, len(s))
 }
 
 // 初始化字体
-func initFont() (err error) {
+func initFont() error {
 	// 获取字体数据
-	buf, err := core.FilePath(text.GlowSansFontFile).Read()
+	buf, err := core.FilePath(text.GlowSansFontFile).ReadBytes()
 	if nil != err {
-		return
+		return err
 	}
 	// 安装字体
-	if err = charts.InstallFont(`glow`, buf); nil != err {
-		return
+	const fontName = `glow`
+	if err := charts.InstallFont(fontName, buf); nil != err {
+		return err
 	}
 	// 加载字体
-	font, err := charts.GetFont(`glow`)
+	font, err := charts.GetFont(fontName)
 	if nil != err {
-		return
+		return err
 	}
 	// 设置默认字体
 	charts.SetDefaultFont(font)
-	return
+	return nil
 }
 
 // 查看叠猫猫图片
@@ -77,8 +75,9 @@ func (d *data) viewImage(ctx *zero.Ctx) message.MessageID {
 			if cockroach == globalLocation {
 				return fmt.Sprintf(`【%s】翼展 %.1f cm`, mapMeow[k.getTypeID(globalCtx)].str, itof(k.Weight))
 			}
-			return fmt.Sprintf(`%s（%d）%.1f kg%s`,
+			return fmt.Sprintf(`%s（%d）%.1f %s %s`,
 				k.TitleCardOrNickName(globalCtx), k.Int(), itof(k.Weight),
+				l10nReplacer(globalLocation).Replace(`kg`),
 				l10nReplacer(globalLocation).Replace(mapMeow[k.getTypeID(ctx)].str))
 		}
 		str[h] = strings.ReplaceAll(origin(), `	`, ``)
@@ -91,7 +90,7 @@ func (d *data) viewImage(ctx *zero.Ctx) message.MessageID {
 }
 
 // 设置图表
-func setChart(v [][]float64, s []string, l int) (p *charts.Painter, err error) {
+func setChart(v [][]float64, s []string, l int) (*charts.Painter, error) {
 	charts.SetDefaultWidth(max(min(3840, 160+320*l), 960))
 	charts.SetDefaultHeight(max(min(2160, 90*l), 270))
 	return charts.HorizontalBarRender(
@@ -111,11 +110,12 @@ func setChart(v [][]float64, s []string, l int) (p *charts.Painter, err error) {
 // 生成并发送图片
 func sendImage(ctx *zero.Ctx, p *charts.Painter) message.MessageID {
 	buf, err := p.Bytes()
+	defer p.Close()
 	if nil != err {
 		return message.MessageID{}
 	}
 	path := core.FilePath(imagePath, `temp.png`)
-	if err = path.Write(buf); nil != err {
+	if _, err = path.Write(buf); nil != err {
 		sendWithImageFail(ctx, err)
 	}
 	img, err := imagePath.Image(`temp.png`)

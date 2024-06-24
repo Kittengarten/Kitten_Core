@@ -103,7 +103,7 @@ func (s *stat) sort() {
 			return 1
 		}
 		// 如果总数相等，比较集齐五餐的数量
-		if c := cmp.Compare(i.cmpStat().min, j.cmpStat().min); 0 != c {
+		if c := cmp.Compare(i.cmpStat().min, j.cmpStat().min); c != 0 {
 			return c
 		}
 		// 如果集齐五餐的数量相等，比较单次最高

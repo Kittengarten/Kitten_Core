@@ -71,10 +71,10 @@ func todayMeal(ctx *zero.Ctx) {
 	ci := slices.IndexFunc(c, func(t today) bool {
 		return name == t.ID
 	})
-	if -1 == ci {
+	if ci == -1 {
 		if needRegister {
 			if !zero.AdminPermission(ctx) {
-				kitten.SendWithImageFail(ctx, true, isNotAdmin)
+				kitten.SendWithImageFail(ctx, ctx.Event.Sender.Card, isNotAdmin)
 				return
 			}
 			// 注册
@@ -98,7 +98,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 该角色未在本群注册
 		if needRegister {
 			if !zero.AdminPermission(ctx) {
-				kitten.SendWithImageFail(ctx, true, isNotAdmin)
+				kitten.SendWithImageFail(ctx, ctx.Event.Sender.Card, isNotAdmin)
 				return
 			}
 			// 注册

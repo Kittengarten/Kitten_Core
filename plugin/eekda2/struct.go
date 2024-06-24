@@ -10,18 +10,7 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 )
 
-const (
-	breakfast mealType = iota // 早餐
-	lunch                     // 午餐
-	lowtea                    // 下午茶
-	dinner                    // 晚餐
-	supper                    // 夜宵
-)
-
 type (
-	// 用餐类型
-	mealType byte
-
 	// 配置文件
 	config []today
 

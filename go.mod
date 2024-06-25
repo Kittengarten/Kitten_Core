@@ -3,7 +3,7 @@ module github.com/Kittengarten/KittenCore
 go 1.22.4
 
 require (
-	github.com/FloatTech/ZeroBot-Plugin v1.8.2-0.20240606063836-3b3b17aa33d8
+	github.com/FloatTech/ZeroBot-Plugin v1.8.2-0.20240612060226-c70766a98969
 	github.com/FloatTech/ZeroBot-Plugin-Playground v0.0.0-20240530090706-3f2af06caa95
 	github.com/FloatTech/floatbox v0.0.0-20240505082030-226ec6713e14
 	github.com/FloatTech/zbpctrl v1.6.1
@@ -107,7 +107,7 @@ require (
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/gin-swagger v1.6.0 // indirect
 	github.com/swaggo/swag v1.16.3 // indirect
-	github.com/tetratelabs/wazero v1.7.2 // indirect
+	github.com/tetratelabs/wazero v1.7.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
@@ -121,7 +121,7 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
-	golang.org/x/exp/shiny v0.0.0-20240604190554-fc45aab8b7f8 // indirect
+	golang.org/x/exp/shiny v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/image v0.17.0 // indirect
 	golang.org/x/mobile v0.0.0-20240604190613-2782386b8afd // indirect
 	golang.org/x/sync v0.7.0 // indirect
@@ -130,7 +130,7 @@ require (
 	golang.org/x/tools v0.22.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
-	modernc.org/libc v1.53.1 // indirect
+	modernc.org/libc v1.53.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
 	modernc.org/sqlite v1.30.1 // indirect

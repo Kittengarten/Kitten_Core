@@ -70,7 +70,7 @@ func setGlobalLocation(s string) bool {
 	case strings.Contains(s, `显卡`):
 		globalLocation = gpu // 显卡
 		return true
-	case strings.Contains(s, `蟑螂`),
+	case strings.ContainsAny(s, `蟑螂`),
 		strings.Contains(s, `小强`),
 		strings.Contains(s, `大蠊`):
 		globalLocation = cockroach // 蟑螂

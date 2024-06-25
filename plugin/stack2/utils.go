@@ -73,13 +73,13 @@ func normal(σ float64) float64 {
 // 遍历断言
 func rangeAssertion(a []any) []any {
 	for k, v := range a {
-		switch t := v.(type) {
+		switch v := v.(type) {
 		case error:
-			a[k] = l10nReplacer(globalLocation).Replace(t.Error())
+			a[k] = l10nReplacer(globalLocation).Replace(v.Error())
 		case fmt.Stringer:
-			a[k] = l10nReplacer(globalLocation).Replace(t.String())
+			a[k] = l10nReplacer(globalLocation).Replace(v.String())
 		case string:
-			a[k] = l10nReplacer(globalLocation).Replace(t)
+			a[k] = l10nReplacer(globalLocation).Replace(v)
 		}
 	}
 	return a

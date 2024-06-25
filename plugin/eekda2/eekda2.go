@@ -74,7 +74,7 @@ func todayMeal(ctx *zero.Ctx) {
 	if -1 == ci {
 		if needRegister {
 			if !zero.AdminPermission(ctx) {
-				kitten.SendWithImageFail(ctx, true, isNotAdmin)
+				kitten.SendWithImageFail(ctx, isNotAdmin)
 				return
 			}
 			// 注册
@@ -98,7 +98,7 @@ func todayMeal(ctx *zero.Ctx) {
 		// 该角色未在本群注册
 		if needRegister {
 			if !zero.AdminPermission(ctx) {
-				kitten.SendWithImageFail(ctx, true, isNotAdmin)
+				kitten.SendWithImageFail(ctx, isNotAdmin)
 				return
 			}
 			// 注册

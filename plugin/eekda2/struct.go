@@ -53,11 +53,11 @@ func (td *today) String() string {
 晚餐：　	%s
 夜宵：　	%s`,
 		td.ID,
-		line(td.ctx, td.Meal[0]),
-		line(td.ctx, td.Meal[1]),
-		line(td.ctx, td.Meal[2]),
-		line(td.ctx, td.Meal[3]),
-		line(td.ctx, td.Meal[4]),
+		line(td.ctx, td.Meal[breakfast]),
+		line(td.ctx, td.Meal[lunch]),
+		line(td.ctx, td.Meal[lowtea]),
+		line(td.ctx, td.Meal[dinner]),
+		line(td.ctx, td.Meal[supper]),
 	)
 }
 
@@ -67,15 +67,15 @@ func (fd *food) String() string {
 	for id, v := range fd.Stat {
 		r.WriteString(`【` + id + `】`)
 		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`早餐：　	%d 次`, v[0]))
+		r.WriteString(fmt.Sprintf(`早餐：　	%d 次`, v[breakfast]))
 		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`午餐：　	%d 次`, v[1]))
+		r.WriteString(fmt.Sprintf(`午餐：　	%d 次`, v[lunch]))
 		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`下午茶：	%d 次`, v[2]))
+		r.WriteString(fmt.Sprintf(`下午茶：	%d 次`, v[lowtea]))
 		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`晚餐：　	%d 次`, v[3]))
+		r.WriteString(fmt.Sprintf(`晚餐：　	%d 次`, v[dinner]))
 		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`夜宵：　	%d 次`, v[4]))
+		r.WriteString(fmt.Sprintf(`夜宵：　	%d 次`, v[supper]))
 		r.WriteByte('\n')
 	}
 	return r.String()[:r.Len()-1]

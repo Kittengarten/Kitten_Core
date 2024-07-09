@@ -72,16 +72,17 @@ func (d *data) evaluate(ctx *zero.Ctx) float64 {
 }
 
 // 自动加入
-func selfIn(ctx *zero.Ctx, d data, p string) {
+func selfIn(ctx *zero.Ctx, d data, p string) bool {
 	ctx.Event.UserID = sid.Int()
 	if d.evaluate(ctx) <= rand.Float64() {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 加入
-		return
+		return false
 	}
 	core.RandomDelay(time.Second)
 	ctx.Send(p + cStack + cMeow + ` ` + cIn)
 	core.RandomDelay(time.Second)
 	d.in(ctx)
+	return true
 }
 
 // 自动分析
@@ -137,14 +138,15 @@ func (d *data) evaluateEat(ctx *zero.Ctx) float64 {
 }
 
 // 自动吃猫猫
-func selfEat(ctx *zero.Ctx, d data, p string) {
+func selfEat(ctx *zero.Ctx, d data, p string) bool {
 	ctx.Event.UserID = sid.Int()
 	if d.evaluateEat(ctx) < rand.Float64() {
-		return
+		return false
 	}
 	// 以评估的概率，触发喵喵使用 /吃猫猫
 	core.RandomDelay(time.Second)
 	ctx.Send(p + cEat + cMeow)
 	core.RandomDelay(time.Second)
 	d.eat(ctx)
+	return true
 }

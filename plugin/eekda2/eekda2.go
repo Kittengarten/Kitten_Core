@@ -30,11 +30,11 @@ const (
 	unregisterSuccess = cUnregister + `成功喵！`
 	isNotAdmin        = `不是管理员，无法操作喵！`
 	xx                = `XX`
-	thisGroup         = `	// 在本群`
+	thisGroup         = ` // 在本群`
 	help              = cRegister + xx + cEEKDA + thisGroup + cRegister + xx + `今天吃什么（管理员可用）
 ` + cUnregister + xx + cEEKDA + thisGroup + cUnregister + xx + `今天吃什么（管理员可用）
-` + xx + cEEKDA + `	// 获取` + xx + `今日食谱
-查询被吃次数	// 查询本人被吃次数`
+` + xx + cEEKDA + ` // 获取` + xx + `今日食谱
+查询被吃次数 // 查询本人被吃次数`
 )
 
 var (

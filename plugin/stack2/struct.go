@@ -81,7 +81,7 @@ type (
 		Name      string      // 群名片或昵称
 		Weight    int         // 体重（0.1kg 数）
 		Status    bool        // 是否在叠猫猫中
-		Time      time.Time   // 如果在叠猫猫中，叠入的时间；如果不在叠猫猫中，冷却结束的时间
+		Time      time.Time   // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，冷却结束的时间
 		// Stat             // 统计信息
 	}
 

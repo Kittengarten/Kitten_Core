@@ -1,6 +1,6 @@
 module github.com/Kittengarten/KittenCore
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/FloatTech/ZeroBot-Plugin v1.8.2-0.20240612060226-c70766a98969
@@ -10,18 +10,20 @@ require (
 	github.com/FloatTech/zbputils v1.7.2-0.20240530064059-af6f6773ba94
 	github.com/Kittengarten/KittenAnno v1.0.1
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7
-	github.com/antchfx/htmlquery v1.3.1
+	github.com/antchfx/htmlquery v1.3.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd
 	github.com/mroth/weightedrand/v2 v2.1.0
 	github.com/prometheus-community/pro-bing v0.4.0
+	github.com/sahilm/fuzzy v0.1.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/tidwall/gjson v1.17.1
+	github.com/tidwall/sjson v1.2.5
 	github.com/vicanso/go-charts/v2 v2.6.9
 	github.com/wdvxdr1123/ZeroBot v1.7.5-0.20240509033506-cc39bb31e471
 	gitlab.com/tozd/go/errors v0.8.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.27.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -37,8 +39,8 @@ require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
-	github.com/antchfx/xpath v1.3.0 // indirect
-	github.com/bytedance/sonic v1.11.8 // indirect
+	github.com/antchfx/xpath v1.3.1 // indirect
+	github.com/bytedance/sonic v1.11.9 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
@@ -67,7 +69,7 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.21.0 // indirect
+	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -82,6 +84,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kanrichan/resvg-go v0.0.2-0.20231001163256-63db194ca9f5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240513124658-fba389f38bae // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -116,18 +119,18 @@ require (
 	gitlab.com/gomidi/midi/v2 v2.1.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
-	golang.org/x/exp/shiny v0.0.0-20240613232115-7f521ea00fb8 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
+	golang.org/x/exp/shiny v0.0.0-20240707233637-46b078467d37 // indirect
 	golang.org/x/image v0.18.0 // indirect
-	golang.org/x/mobile v0.0.0-20240604190613-2782386b8afd // indirect
+	golang.org/x/mobile v0.0.0-20240707233753-b765e5d5218f // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
+	golang.org/x/tools v0.23.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
-	modernc.org/libc v1.53.3 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
+	modernc.org/libc v1.54.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
 	modernc.org/sqlite v1.30.1 // indirect

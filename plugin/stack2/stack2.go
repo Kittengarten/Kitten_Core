@@ -35,7 +35,7 @@ var (
 	// 全局上下文，仅用于猫猫的 String() 方法
 	globalCtx *zero.Ctx
 	// 可导出的读写锁，用于叠猫猫文件的并发安全
-	Mu sync.RWMutex
+	Mu sync.Mutex
 )
 
 func init() {
@@ -104,19 +104,8 @@ func stackExe(ctx *zero.Ctx) {
 		return
 	}
 	globalCtx = ctx
-	switch args[1] {
-	case cIn:
-		// 如果是加入，需要写锁
-		Mu.Lock()
-		defer Mu.Unlock()
-	case cView, cAnalysis, cRank:
-		// 如果是查看、分析、排行，需要读锁
-		fallthrough
-	default:
-		// 默认显示帮助文本，需要读锁
-		Mu.RLock()
-		defer Mu.RUnlock()
-	}
+	Mu.Lock()
+	defer Mu.Unlock()
 	d, err := core.Load[data](dataPath, core.Empty)
 	if nil != err {
 		sendWithImageFail(ctx, `加载叠猫猫数据文件时发生错误喵！`, err)
@@ -125,19 +114,21 @@ func stackExe(ctx *zero.Ctx) {
 	switch args[1] {
 	case cIn:
 		d.in(ctx)
-		selfEat(ctx, d, p)
-		core.RandomDelay(time.Second)
-		selfIn(ctx, d, p)
+		if !selfEat(ctx, d, p) {
+			core.RandomDelay(time.Second)
+			selfIn(ctx, d, p)
+		}
 	case cView:
 		d.view(ctx, zero.UserOrGrpAdmin(ctx))
 		core.RandomDelay(time.Second)
 		d.viewImage(ctx)
+		if !selfEat(ctx, d, p) {
+			core.RandomDelay(time.Second)
+			selfIn(ctx, d, p)
+		}
 	case cAnalysis:
 		d.analysis(ctx)
 		selfAnalysis(ctx, d, p)
-		selfEat(ctx, d, p)
-		core.RandomDelay(time.Second)
-		selfIn(ctx, d, p)
 	case cRank:
 		d.rank(ctx)
 		selfRank(ctx, d, p)
@@ -329,13 +320,13 @@ func (d *data) in(ctx *zero.Ctx) error {
 
 // 获取并返回叠猫猫队列
 func (d *data) getStack() data {
-	// 删除不在叠猫猫中的猫猫，得到叠猫猫队列
+	// 删除未在叠猫猫中的猫猫，得到叠猫猫队列
 	return slices.DeleteFunc(slices.Clone(*d), func(k meow) bool { return !k.Status })
 }
 
-// 获取并返回不在叠猫猫的队列
+// 获取并返回未在叠猫猫的队列
 func (d *data) getNoStack() data {
-	// 删除叠猫猫中的猫猫，得到不在叠猫猫的队列
+	// 删除叠猫猫中的猫猫，得到未在叠猫猫的队列
 	return slices.DeleteFunc(slices.Clone(*d), func(k meow) bool { return k.Status })
 }
 

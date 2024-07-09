@@ -30,29 +30,49 @@ func eatExe(ctx *zero.Ctx) {
 		return
 	}
 	d.eat(ctx)
-	selfEat(ctx, d, p)
-	core.RandomDelay(time.Second)
-	selfIn(ctx, d, p)
+	if !selfEat(ctx, d, p) {
+		core.RandomDelay(time.Second)
+		selfIn(ctx, d, p)
+	}
 }
 
 // 吃猫猫
 func (d *data) eat(ctx *zero.Ctx) message.MessageID {
-	// 初始化自身
-	k, err := d.pre(ctx)
+	var (
+		// 初始化自身
+		k, err = d.pre(ctx)
+		// 未在叠猫猫的队列
+		dn data
+		// 取消恢复数据状态
+		cancel bool
+		// 恢复数据状态
+		restore = func() {
+			if cancel {
+				return
+			}
+			// 如果没有取消，则下次进行取消
+			*d, cancel = slices.Concat(dn, *d, data{k}), true
+		}
+	)
+	// 延迟恢复数据状态
+	defer restore()
 	if nil != err {
+		// 如果初始化错误，不能吃猫猫，依靠延迟函数恢复数据状态
 		return message.MessageID{}
 	}
 	if 小老虎 > k.getTypeID(ctx) {
+		// 如果不是老虎，不能吃猫猫，依靠延迟函数恢复数据状态
 		return sendWithImageFail(ctx, `老虎才可以吃猫猫——`)
 	}
 	// 未在叠猫猫的队列
-	dn := d.getNoStack()
+	dn = d.getNoStack()
 	// 执行吃猫猫
 	if !d.doEat(ctx, &k) {
+		// 如果不能吃猫猫，依靠延迟函数恢复数据状态
 		return message.MessageID{}
 	}
 	// 合并当前未叠猫猫与叠猫猫的队列，将老虎追加入切片中
-	*d = slices.Concat(dn, *d, data{k})
+	restore()
 	// 存储叠猫猫数据
 	if err := core.Save(dataPath, d); nil != err {
 		return sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)

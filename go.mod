@@ -15,10 +15,8 @@ require (
 	github.com/makiuchi-d/gozxing v0.1.2-0.20230218072048-d8563176fedd
 	github.com/mroth/weightedrand/v2 v2.1.0
 	github.com/prometheus-community/pro-bing v0.4.0
-	github.com/sahilm/fuzzy v0.1.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/tidwall/gjson v1.17.1
-	github.com/tidwall/sjson v1.2.5
 	github.com/vicanso/go-charts/v2 v2.6.9
 	github.com/wdvxdr1123/ZeroBot v1.7.5-0.20240509033506-cc39bb31e471
 	gitlab.com/tozd/go/errors v0.8.1
@@ -84,7 +82,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kanrichan/resvg-go v0.0.2-0.20231001163256-63db194ca9f5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
-	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240513124658-fba389f38bae // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -122,7 +119,7 @@ require (
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
 	golang.org/x/exp/shiny v0.0.0-20240613232115-7f521ea00fb8 // indirect
-	golang.org/x/image v0.17.0 // indirect
+	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/mobile v0.0.0-20240604190613-2782386b8afd // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect

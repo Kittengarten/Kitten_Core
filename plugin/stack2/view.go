@@ -3,6 +3,7 @@ package stack2
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
@@ -16,6 +17,7 @@ import (
 // 查看叠猫猫
 func (d *data) view(ctx *zero.Ctx, all bool) {
 	s := d.getStack() // 获取叠猫猫队列
+	go setCard(ctx, len(s))
 	sendTextOf(ctx, true, `【叠猫猫队列】
 现在有 %d 只猫猫
 总重量为 %.1f kg
@@ -24,13 +26,21 @@ func (d *data) view(ctx *zero.Ctx, all bool) {
 		itof(s.totalWeight()),
 		func() any {
 			if all {
-				// 查看全部
-				return &s
+				// 查看全部（先发送前 50 条）
+				sr := s[:min(50, len(s))]
+				s = s[len(sr):]
+				return &sr
 			}
 			// 查看省略版
 			return s.Str()
 		}())
-	go setCard(ctx, len(s))
+	for all && 0 < len(s) {
+		core.RandomDelay(time.Second)
+		// 发送剩余部分
+		sr := s[:min(50, len(s))]
+		s = s[len(sr):]
+		sendText(ctx, true, sr)
+	}
 }
 
 // 初始化字体

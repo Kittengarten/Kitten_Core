@@ -44,10 +44,10 @@ func (d *data) analysis(ctx *zero.Ctx) message.MessageID {
 // 生成分析并发送文本
 func (d *data) generateAnalysis(ctx *zero.Ctx) (c chance, flat, img bool, err error) {
 	var (
-		dn = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		s  = dn.getStack()    // 获取叠猫猫队列
+		dr = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
+		s  = dr.getStack()    // 获取叠猫猫队列
 	)
-	k, err := dn.pre(ctx) // 初始化自身
+	k, err := dr.pre(ctx) // 初始化自身
 	if nil != err {
 		// 如果不能加入，什么也不做
 		// 初始化时已经发送了相关信息
@@ -76,8 +76,8 @@ func (d *data) generateAnalysis(ctx *zero.Ctx) (c chance, flat, img bool, err er
 		return
 	}
 	// 如果是非空队列
-	sn := append(s, k)       // 用于压坏判定的队列
-	c.p = sn.chancePressed() // 压坏概率
+	sn := append(s, k)          // 用于压坏判定的队列
+	c.p = sn.chancePressed(ctx) // 压坏概率
 	gp := func(m meow) float64 {
 		if 抱枕 >= k.getTypeID(ctx) || 幼年猫娘 <= m.getTypeID(ctx) {
 			// 抱枕及以下的猫猫不会导致猫猫摔下去，直接在猫娘身上叠猫猫不会摔下去
@@ -119,10 +119,10 @@ func (d *data) generateAnalysis(ctx *zero.Ctx) (c chance, flat, img bool, err er
 // 计算清空猫堆的概率
 func chanceClear(s data, k meow, ctx *zero.Ctx) float64 {
 	var (
-		sn   = append(s, k)       // 用于压坏判定的队列
-		p, f = 1.0, 1.0           // 每次的压坏、摔下概率
-		p1   = sn.chancePressed() // 压坏概率
-		l    = len(s)             // 猫堆高度
+		sn   = append(s, k)          // 用于压坏判定的队列
+		p, f = 1.0, 1.0              // 每次的压坏、摔下概率
+		p1   = sn.chancePressed(ctx) // 压坏概率
+		l    = len(s)                // 猫堆高度
 	)
 	if 0 == l {
 		// 如果猫堆本来就是空的，清空概率等于平地摔概率
@@ -147,7 +147,7 @@ func chanceClear(s data, k meow, ctx *zero.Ctx) float64 {
 			sn = nil
 			break
 		}
-		p *= sn.chancePressed() // 每次的压坏概率
+		p *= sn.chancePressed(ctx) // 每次的压坏概率
 		if 猫娘萝莉 <= sn[0].getTypeID(ctx) && 2 < len(sn) {
 			// 如果底座是猫娘萝莉以上，则不会继续压坏
 			// 如果此时剩余的猫堆高度大于 1，则无法清空

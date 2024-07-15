@@ -144,22 +144,22 @@ func stackExe(ctx *zero.Ctx) {
 			qq := kitten.QQ(u)
 			w = len(qq.TitleCardOrNickName(ctx))
 		}
+		helpText := []string{help}
+		if 小老虎 <= k.getTypeID(ctx) {
+			// 如果是老虎，发送吃猫猫帮助文本
+			helpText = append(helpText, helpEat)
+		}
 		sendText(ctx, true, strings.NewReplacer(
 			`(抱枕突破所需体重/当前体重)`,
 			fmt.Sprintf(` %.2f%% `, 100*chanceFlat(k)),
 			`N(0, 体重²)`,
 			fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
 				time.Hour*time.Duration(stackConfig.GapTime*w)/10)),
-		).Replace(help))
-		if 小老虎 <= k.getTypeID(ctx) {
-			// 如果是老虎，发送吃猫猫帮助文本
-			core.RandomDelay(time.Second)
-			sendText(ctx, true, strings.NewReplacer(
-				`N(0, (e*体重)²)`,
-				fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
-					time.Duration(float64(stackConfig.GapTime)*float64(time.Hour)*math.E*itof(w)))),
-			).Replace(helpEat))
-		}
+			`N(0, (e*体重)²)`,
+			fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
+				time.Duration(float64(stackConfig.GapTime)*float64(time.Hour)*math.E*itof(w)))),
+		).Replace(strings.Join(helpText, `
+`)))
 	}
 }
 
@@ -352,12 +352,12 @@ String 实现 fmt.Stringer
 */
 func (d *data) String() string {
 	// 克隆一份防止修改源数据
-	dn := slices.Clone(*d)
+	dr := slices.Clone(*d)
 	// 按“后来居上”排列叠猫猫队列
-	slices.Reverse(dn)
+	slices.Reverse(dr)
 	var s strings.Builder
-	s.Grow(32 * len(dn))
-	for _, k := range dn {
+	s.Grow(32 * len(dr))
+	for _, k := range dr {
 		s.WriteByte('\n')
 		s.WriteString(k.String())
 	}
@@ -371,15 +371,15 @@ func (d *data) String() string {
 */
 func (d *data) Str() string {
 	var (
-		dn = slices.Clone(*d) // 克隆一份防止修改源数据
-		l  = len(dn)          // 叠猫猫队列高度
+		dr = slices.Clone(*d) // 克隆一份防止修改源数据
+		l  = len(dr)          // 叠猫猫队列高度
 		s  strings.Builder
 		ok bool
 	)
 	s.Grow(32 * min(l, 20))
 	// 按“后来居上”排列叠猫猫队列
-	slices.Reverse(dn)
-	for i, k := range dn {
+	slices.Reverse(dr)
+	for i, k := range dr {
 		if 20 < l && 5 <= i && i < l-5 {
 			// 当高度 > 20 时，跳过中间的猫猫，只取上下 5 只
 			if ok {
@@ -415,13 +415,19 @@ func (d *data) totalWeight() (w int) {
 }
 
 // 获取最下方的猫猫被压坏的概率
-func (d *data) chancePressed() float64 {
+func (d *data) chancePressed(ctx *zero.Ctx) float64 {
 	// 压坏的概率
 	if 1 >= len(*d) {
 		// 如果只有一只猫猫或者没有猫猫，直接返回，避免下标越界
 		return 0
 	}
 	a := (*d)[1:]
+	if 小老虎 <= (*d)[0].getTypeID(ctx) {
+		// 如果是老虎以上，压坏的概率不同
+		return min(1, float64(a.totalWeight())/math.Pow(math.E, math.E)/
+			float64((*d)[0].Weight))
+	}
+	// 常规压坏概率
 	return max(0, (float64(a.totalWeight())-math.E*float64((*d)[0].Weight))/
 		float64(d.totalWeight()))
 }
@@ -431,8 +437,8 @@ func (d *data) chancePressed() float64 {
 
 如果没有被压坏则返回 true
 */
-func (d *data) checkPress() bool {
-	return d.chancePressed() <= rand.Float64()
+func (d *data) checkPress(ctx *zero.Ctx) bool {
+	return d.chancePressed(ctx) <= rand.Float64()
 }
 
 /*
@@ -449,7 +455,7 @@ func (d *data) pressResult(ctx *zero.Ctx, k meow) int {
 	)
 	for i := range *d {
 		n := &(*d)[i]
-		if a := s[i:]; a.checkPress() {
+		if a := s[i:]; a.checkPress(ctx) {
 			// 如果没有被压坏，则直接返回
 			return i
 		}
@@ -510,16 +516,8 @@ t 为退出原因，h 为 摔下去的高度 | 压坏的猫猫总数 | 上方的
 func exit(ctx *zero.Ctx, k *meow, t result, h int) {
 	// 去除
 	k.Status = false
-	// 休息
+	// 计算休息时间
 	r := float64(time.Hour) * float64(stackConfig.GapTime) * normal(itof(k.Weight))
-	if eat == t {
-		// 吃猫猫的休息时间为 e 倍
-		r *= math.E
-	}
-	k.Time = time.Unix(ctx.Event.Time, 0).Add(max(
-		time.Hour*time.Duration(stackConfig.MinGapTime),
-		time.Duration(r)),
-	)
 	// 体重变化
 	switch t {
 	case flat:
@@ -528,14 +526,26 @@ func exit(ctx *zero.Ctx, k *meow, t result, h int) {
 		k.Weight = max(w, -(1 + w))
 	case fall:
 		// 摔下去，体重 - 100g × 当前高度
-		k.Weight = max(1, k.Weight-h)
-	case press, pressed, eat:
+		if k.Weight = max(1, k.Weight-h); 1 == k.Weight {
+			// 如果摔成了绒布球，休息时间增加至 h × e^e 倍
+			r *= float64(h) * math.Pow(math.E, math.E)
+		}
+	case eat:
+		// 吃猫猫的休息时间为 e 倍
+		r *= math.E
+		// 吃猫猫，体重 + 吃掉的猫猫总重量（0.1kg 数）
+		fallthrough
+	case press, pressed:
 		// 压坏了猫猫，体重 + 100g × 压坏的猫猫总数
 		// 被压坏，体重 + 100g × 上方的猫猫总数
-		// 吃猫猫，体重 + 吃掉的猫猫总重量（0.1kg 数）
 		k.Weight = min(k.Weight, core.MaxInt-h) + h
 	}
 	// 被老虎吃掉，体重不变
+	// 进入休息
+	k.Time = time.Unix(ctx.Event.Time, 0).Add(max(
+		time.Hour*time.Duration(stackConfig.MinGapTime),
+		time.Duration(r)),
+	)
 }
 
 // 清空猫堆的体重调整

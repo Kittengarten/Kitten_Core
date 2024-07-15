@@ -35,8 +35,8 @@ func sendYiYan(ctx *zero.Ctx) message.MessageID {
 		// 获取 HTTP 响应体，失败则返回
 		data, err = core.GETData(yiYan)
 		rsp       struct {
-			Hitokoto string `json:"hitokoto"`
-			From     string `json:"from"`
+			Hitokoto string
+			From     string
 			FromWho  string `json:"from_who"`
 		}
 	)

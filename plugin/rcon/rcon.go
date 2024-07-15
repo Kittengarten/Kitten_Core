@@ -32,8 +32,8 @@ const (
 私聊可用：
 设置 RCON 主机 [主机]
 设置 RCON 密码 [密码]`
-	host item = iota
-	password
+	host     item = iota // 主机
+	password             // 密码
 )
 
 var (

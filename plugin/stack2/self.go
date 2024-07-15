@@ -14,15 +14,15 @@ import (
 // 评估叠猫猫，返回叠入的权重作为概率
 func (d *data) evaluate(ctx *zero.Ctx) float64 {
 	var (
-		dn     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		k, err = dn.pre(ctx)      // 初始化自身
+		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
+		k, err = dr.pre(ctx)      // 初始化自身
 	)
 	if nil != err {
 		// 如果不能活动，什么也不做
 		return 0
 	}
 	var (
-		s = dn.getStack() // 获取叠猫猫队列
+		s = dr.getStack() // 获取叠猫猫队列
 		l = len(s)        // 叠猫猫队列长度
 	)
 	if 0 == l {
@@ -35,8 +35,8 @@ func (d *data) evaluate(ctx *zero.Ctx) float64 {
 		return 1
 	}
 	var (
-		sn = append(s, k)       // 用于压坏判定的队列
-		cp = sn.chancePressed() // 压坏概率
+		sn = append(s, k)          // 用于压坏判定的队列
+		cp = sn.chancePressed(ctx) // 压坏概率
 		gp = func(m meow) float64 {
 			if 抱枕 >= k.getTypeID(ctx) || 幼年猫娘 <= m.getTypeID(ctx) {
 				// 抱枕及以下的猫猫不会导致猫猫摔下去，直接在猫娘身上叠猫猫不会摔下去
@@ -114,15 +114,15 @@ func selfRank(ctx *zero.Ctx, d data, p string) {
 // 评估吃猫猫，返回吃的权重作为概率
 func (d *data) evaluateEat(ctx *zero.Ctx) float64 {
 	var (
-		dn     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
-		k, err = dn.pre(ctx)      // 初始化自身
+		dr     = slices.Clone(*d) // 克隆切片，防止对后续调用造成影响
+		k, err = dr.pre(ctx)      // 初始化自身
 	)
 	if nil != err {
 		// 如果不能活动，什么也不做
 		return 0
 	}
 	var (
-		s = dn.getStack() // 获取叠猫猫队列
+		s = dr.getStack() // 获取叠猫猫队列
 		l = len(s)        // 叠猫猫队列长度
 	)
 	if 0 == l {

@@ -8,7 +8,23 @@ import (
 	"github.com/wdvxdr1123/ZeroBot/driver"
 )
 
-func RunBot() {
+func getDriver(forward bool, url, accessToken string) zero.Driver {
+	if forward {
+		return &driver.WSClient{
+			// OneBot 正向 WS 默认使用 6700 端口
+			Url:         url,
+			AccessToken: accessToken,
+		}
+	}
+	return &driver.WSServer{
+		// OneBot 反向 WS 默认使用 6700 端口
+		Url:         url,
+		AccessToken: accessToken,
+	}
+}
+
+// Runbot 启动机器人
+func RunBot(forward bool) {
 	var (
 		config     = kitten.MainConfig()
 		superUsers = make([]int64, len(config.SuperUsers), len(config.SuperUsers))
@@ -21,11 +37,9 @@ func RunBot() {
 		CommandPrefix: config.CommandPrefix,
 		SuperUsers:    superUsers,
 		Driver: []zero.Driver{
-			&driver.WSClient{
-				// OneBot 正向 WS 默认使用 6700 端口
-				Url:         config.WebSocket.URL,
-				AccessToken: config.WebSocket.AccessToken,
-			},
+			getDriver(forward,
+				config.WebSocket.URL,
+				config.WebSocket.AccessToken),
 		},
 	}, process.GlobalInitMutex.Unlock)
 }

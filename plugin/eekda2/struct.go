@@ -46,37 +46,32 @@ type (
 
 // String 实现 fmt.Stringer，播报今天吃什么
 func (td *today) String() string {
-	return fmt.Sprintf(`【%s今天吃什么】
-早餐：　	%s
-午餐：　	%s
-下午茶：	%s
-晚餐：　	%s
-夜宵：　	%s`,
-		td.ID,
-		line(td.ctx, td.Meal[breakfast]),
-		line(td.ctx, td.Meal[lunch]),
-		line(td.ctx, td.Meal[lowtea]),
-		line(td.ctx, td.Meal[dinner]),
-		line(td.ctx, td.Meal[supper]),
-	)
+	return `【` + td.ID + `今天吃什么】
+早餐：　	` + line(td.ctx, td.Meal[breakfast]) + `
+午餐：　	` + line(td.ctx, td.Meal[lunch]) + `
+下午茶：	` + line(td.ctx, td.Meal[lowtea]) + `
+晚餐：　	` + line(td.ctx, td.Meal[dinner]) + `
+夜宵：　	` + line(td.ctx, td.Meal[supper])
 }
 
 // String 实现 fmt.Stringer，播报今天吃什么
 func (fd *food) String() string {
-	var r strings.Builder
+	var (
+		r  strings.Builder
+		lf bool
+	)
 	for id, v := range fd.Stat {
-		r.WriteString(`【` + id + `】`)
-		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`早餐：　	%d 次`, v[breakfast]))
-		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`午餐：　	%d 次`, v[lunch]))
-		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`下午茶：	%d 次`, v[lowtea]))
-		r.WriteByte('\n')
-		r.WriteString(fmt.Sprintf(`晚餐：　	%d 次`, v[dinner]))
-		r.WriteByte('\n')
+		if lf {
+			r.WriteByte('\n')
+		} else {
+			lf = true
+		}
+		r.WriteString(`【` + id + "】\n")
+		r.WriteString(fmt.Sprintf("早餐：　	%d 次\n", v[breakfast]))
+		r.WriteString(fmt.Sprintf("午餐：　	%d 次\n", v[lunch]))
+		r.WriteString(fmt.Sprintf("下午茶：	%d 次\n", v[lowtea]))
+		r.WriteString(fmt.Sprintf("晚餐：　	%d 次\n", v[dinner]))
 		r.WriteString(fmt.Sprintf(`夜宵：　	%d 次`, v[supper]))
-		r.WriteByte('\n')
 	}
-	return r.String()[:r.Len()-1]
+	return r.String()
 }

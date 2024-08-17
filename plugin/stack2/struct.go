@@ -69,8 +69,9 @@ type (
 
 	// 叠猫猫配置
 	config struct {
-		GapTime    int // 每千克体重的冷却时间（小时数）
-		MinGapTime int // 最小冷却时间（小时数）
+		RestHoursPerKG int // 每千克体重的休息小时数
+		MinRestHours   int // 最小休息小时数
+		OCMinRestHours int // 加速的最小休息小时数
 	}
 
 	data []meow // 叠猫猫数据
@@ -78,10 +79,10 @@ type (
 	// 猫猫数据值
 	meow struct {
 		kitten.QQ `yaml:"id"` // QQ
-		Name      string      `yaml:"omitempty"` // 群名片或昵称
-		Weight    int         // 体重（0.1kg 数）
+		Name      string      `yaml:",omitempty"` // 群名片或昵称
+		Weight    int         // 体重（0.1 kg 数）
 		Status    bool        // 是否在叠猫猫中
-		Time      time.Time   // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，冷却结束的时间
+		Time      time.Time   // 如果在叠猫猫中，叠入的时间；如果未在叠猫猫中，休息结束的时间
 		// Stat             // 统计信息
 	}
 
@@ -112,7 +113,7 @@ type (
 	// Record 纪录
 	Record struct {
 		Count  int // 最大数量
-		Weight int // 最大重量（0.1kg 数）
+		Weight int // 最大重量（0.1 kg 数）
 	}
 
 	// Exit 退出统计信息

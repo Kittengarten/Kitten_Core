@@ -25,21 +25,23 @@ func (d *data) view(ctx *zero.Ctx, all bool) {
 		len(s),
 		itof(s.totalWeight()),
 		func() any {
-			if all {
-				// 查看全部（先发送前 50 条）
-				sr := s[:min(50, len(s))]
-				s = s[len(sr):]
-				return &sr
+			if !all {
+				// 查看省略版
+				return s.Str()
 			}
-			// 查看省略版
-			return s.Str()
+			// 查看全部（先发送前 50 条）
+			sr := s[max(0, len(s)-50):]
+			// 剩余部分
+			s = s[:len(s)-len(sr)]
+			return &sr
 		}())
 	for all && 0 < len(s) {
 		core.RandomDelay(time.Second)
-		// 发送剩余部分
-		sr := s[:min(50, len(s))]
-		s = s[len(sr):]
-		sendText(ctx, true, sr)
+		// 发送剩余部分的前 50 条
+		sr := s[max(0, len(s)-50):]
+		// 剩余部分的剩余部分
+		s = s[:len(s)-len(sr)]
+		sendText(ctx, true, &sr)
 	}
 }
 

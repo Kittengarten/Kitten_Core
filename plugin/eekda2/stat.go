@@ -33,10 +33,10 @@ func getStat(ctx *zero.Ctx) {
 		}
 		for _, t := range c {
 			if slices.Contains(t.Group, ctx.Event.GroupID) {
-				// 如果当前角色在本群注册过，跳过
+				// 如果当前角色在本群已注册，跳过
 				continue
 			}
-			// 如果当前角色在本群没有注册过，移除
+			// 如果当前角色在本群未注册，移除
 			maps.DeleteFunc(s[i].Stat, func(k string, v [count]int) bool {
 				return k == t.ID
 			})

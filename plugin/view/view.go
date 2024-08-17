@@ -57,13 +57,13 @@ func init() {
 	// 查看功能
 	engine.OnCommand(cView).SetBlock(true).
 		Limit(kitten.GetLimiter(kitten.User)).
-		Limit(kitten.GetLimiter(kitten.Group)).
+		Limit(kitten.GetLimiter(kitten.GroupNormal)).
 		Handle(view)
 
 	// 支付宝到账语音
 	engine.OnPrefix(`支付宝到账`).SetBlock(true).
 		Limit(kitten.GetLimiter(kitten.User)).
-		Limit(kitten.GetLimiter(kitten.Group)).
+		Limit(kitten.GetLimiter(kitten.GroupNormal)).
 		Handle(sendAlipayVoice)
 
 	// Ping 功能

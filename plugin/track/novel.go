@@ -53,8 +53,7 @@ func (cp *chapter) init(p platform, url string) error {
 
 // String 实现 fmt.Stringer
 func (cp *chapter) String() string {
-	return cp.title + `
-` + cp.url
+	return cp.title + "\n" + cp.url
 }
 
 // String 实现 fmt.Stringer

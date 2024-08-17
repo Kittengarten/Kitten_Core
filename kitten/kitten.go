@@ -16,7 +16,7 @@ var (
 	botConfig   config              // 来自 Bot 的配置文件
 	ImageFolder core.Path = `image` // 图片文件夹名
 	imagePath   core.Path           // 图片路径
-	Weight      int                 // 自身叠猫猫体重（0.1kg 数）
+	Weight      int                 // 自身叠猫猫体重（0.1 kg 数）
 )
 
 func init() {

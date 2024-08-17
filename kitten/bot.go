@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"slices"
+	"strings"
 
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
@@ -19,12 +21,12 @@ import (
 type Item byte // 对上下文的检查类型
 
 const (
-	noEvent                = `非消息的上下文中获取的 bot 实例无 *Event，不可使用`
-	DetailTypePrivate      = `private`
-	DetailTypeGroup        = `group`
-	DetailTypeGuild        = `guild`
-	Caller            Item = iota // APICaller
-	Event                         // *Event
+	noEvent      = `非消息的上下文中获取的 bot 实例无 *Event，不可使用`
+	Private      = `private`
+	Group        = `group`
+	Guild        = `guild`
+	Caller  Item = iota // APICaller
+	Event               // *Event
 )
 
 // Restart 重启 systemd 服务
@@ -57,9 +59,9 @@ func SendText(ctx *zero.Ctx, lf bool, text ...any) message.MessageID {
 		return message.NewMessageIDFromInteger(0)
 	}
 	switch atUser := message.At(ctx.Event.UserID); ctx.Event.DetailType {
-	case DetailTypePrivate:
+	case Private:
 		return ctx.Send(Text(text...))
-	case DetailTypeGroup, DetailTypeGuild:
+	case Group, Guild:
 		if lf {
 			return ctx.SendChain(atUser, Text("\n"), Text(text...))
 		}
@@ -83,9 +85,9 @@ func SendTextOf(ctx *zero.Ctx, lf bool, format string, a ...any) message.Message
 		return message.NewMessageIDFromInteger(0)
 	}
 	switch atUser := message.At(ctx.Event.UserID); ctx.Event.DetailType {
-	case DetailTypePrivate:
+	case Private:
 		return ctx.Send(TextOf(format, a...))
-	case DetailTypeGroup, DetailTypeGuild:
+	case Group, Guild:
 		if lf {
 			return ctx.SendChain(atUser, Text("\n"), TextOf(format, a...))
 		}
@@ -109,9 +111,9 @@ func SendMessage(ctx *zero.Ctx, lf bool, m ...message.MessageSegment) message.Me
 		return message.NewMessageIDFromInteger(0)
 	}
 	switch messageChain := []message.MessageSegment{message.At(ctx.Event.UserID)}; ctx.Event.DetailType {
-	case DetailTypePrivate:
+	case Private:
 		return ctx.Send(m)
-	case DetailTypeGroup, DetailTypeGuild:
+	case Group, Guild:
 		if lf {
 			return ctx.SendChain(append(append(messageChain, Text("\n")), m...)...)
 		}
@@ -184,9 +186,9 @@ func GetObject(ctx *zero.Ctx) QQ {
 		return 0
 	}
 	switch ctx.Event.DetailType {
-	case DetailTypePrivate:
+	case Private:
 		return QQ(ctx.Event.UserID)
-	case DetailTypeGroup:
+	case Group:
 		return QQ(-ctx.Event.GroupID)
 	default:
 		return 0
@@ -225,6 +227,14 @@ func GetSth[T any](ctx *zero.Ctx, name string) (t T) {
 // GetArgs 获取事件上下文中的参数
 func GetArgs(ctx *zero.Ctx) string {
 	return GetSth[string](ctx, `args`)
+}
+
+// GetArgsSlice 获取事件上下文中的参数切片
+func GetArgsSlice(ctx *zero.Ctx) []string {
+	return slices.DeleteFunc(strings.Split(GetArgs(ctx), ` `),
+		func(s string) bool {
+			return `` == s
+		})
 }
 
 // GetImageURL 获取事件上下文中的图片链接

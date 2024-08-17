@@ -72,19 +72,19 @@ func init() {
 	// 更新测试
 	engine.OnCommand(cUpdateTest).SetBlock(true).
 		Limit(kitten.GetLimiter(kitten.User)).
-		Limit(kitten.GetLimiter(kitten.Group)).
+		Limit(kitten.GetLimiter(kitten.GroupNormal)).
 		Handle(updateTest)
 
 	// 更新预览
 	engine.OnCommand(cUpdatePreview).SetBlock(true).
 		Limit(kitten.GetLimiter(kitten.User)).
-		Limit(kitten.GetLimiter(kitten.Group)).
+		Limit(kitten.GetLimiter(kitten.GroupNormal)).
 		Handle(updatePreview)
 
 	// 小说信息功能
 	engine.OnCommand(cNovel).SetBlock(true).
 		Limit(kitten.GetLimiter(kitten.User)).
-		Limit(kitten.GetLimiter(kitten.Group)).
+		Limit(kitten.GetLimiter(kitten.GroupNormal)).
 		Handle(novelInfo)
 
 	// 添加报更
@@ -270,10 +270,7 @@ func query(ctx *zero.Ctx) {
 如果传入值不为书号，则先获取书号
 */
 func getNovel(ctx *zero.Ctx) (novel, error) {
-	args := slices.DeleteFunc(strings.Split(kitten.GetArgs(ctx), ` `),
-		func(s string) bool {
-			return `` == s
-		})
+	args := kitten.GetArgsSlice(ctx)
 	if 2 != len(args) {
 		return novel{}, fmt.Errorf(`本命令参数数量：2
 %s %s

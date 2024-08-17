@@ -29,10 +29,14 @@ func eatExe(ctx *zero.Ctx) {
 		sendWithImageFail(ctx, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
 	}
+	// 计算猫池中位数重量
+	d.median()
+	// 计算最大休息时间
+	maxRest()
 	d.eat(ctx)
-	if !selfEat(ctx, d, p) {
+	if !selfEat(ctx, d) {
 		core.RandomDelay(time.Second)
-		selfIn(ctx, d, p)
+		selfIn(ctx, d)
 	}
 }
 
@@ -57,7 +61,7 @@ func (d *data) eat(ctx *zero.Ctx) message.MessageID {
 	// 延迟恢复数据状态
 	defer restore()
 	if nil != err {
-		// 如果初始化错误，不能吃猫猫，依靠延迟函数恢复数据状态
+		// 如果初始化错误（需要休息或已经加入），不能吃猫猫，依靠延迟函数恢复数据状态
 		return message.MessageID{}
 	}
 	if 小老虎 > k.getTypeID(ctx) {
@@ -73,6 +77,8 @@ func (d *data) eat(ctx *zero.Ctx) message.MessageID {
 	}
 	// 合并当前未叠猫猫与叠猫猫的队列，将老虎追加入切片中
 	restore()
+	// 清理过期玩家
+	d.clear(ctx)
 	// 存储叠猫猫数据
 	if err := core.Save(dataPath, d); nil != err {
 		return sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)
@@ -99,7 +105,7 @@ func (d *data) doEat(ctx *zero.Ctx, k *meow) bool {
 	}
 	var (
 		m    = k
-		w, c int // 老虎吃到的体重（0.1kg 数）和猫猫数
+		w, c int // 老虎吃到的体重（0.1 kg 数）和猫猫数
 	)
 	// 从队列的最上部开始遍历（后来居上）
 	for i := range *d {

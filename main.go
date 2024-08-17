@@ -87,7 +87,7 @@ import (
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/ymgal"           // 月幕galgame
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/yujn"            // 遇见API
 
-	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/aireply" // 人工智能回复
+	// _ "github.com/Kittengarten/KittenCore/plugin/aireply" // 人工智能回复
 
 	_ "github.com/FloatTech/ZeroBot-Plugin/plugin/thesaurus" // 词典匹配回复
 
@@ -107,5 +107,5 @@ func main() {
 			kitten.Error(`主函数有 Bug 喵！`, err, string(debug.Stack()))
 		}
 	}()
-	protocol.RunBot()
+	protocol.RunBot(true)
 }

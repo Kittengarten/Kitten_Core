@@ -100,7 +100,7 @@ func (d *data) generateAnalysis(ctx *zero.Ctx) (c chance, flat, img bool, err er
 		100*c.f,
 		100*c.s,
 		func() string {
-			cc := chanceClear(s, k, ctx)
+			cc := chanceClear(ctx, s, k)
 			switch {
 			case 0 == cc:
 				return ``
@@ -117,7 +117,7 @@ func (d *data) generateAnalysis(ctx *zero.Ctx) (c chance, flat, img bool, err er
 }
 
 // 计算清空猫堆的概率
-func chanceClear(s data, k meow, ctx *zero.Ctx) float64 {
+func chanceClear(ctx *zero.Ctx, s data, k meow) float64 {
 	var (
 		sn   = append(s, k)          // 用于压坏判定的队列
 		p, f = 1.0, 1.0              // 每次的压坏、摔下概率
@@ -205,6 +205,7 @@ func tip(w int, c chance) string {
 			`桀桀桀，美味的小猫咪！
 生来就是要被老虎吃掉的`,
 			`大吉大利，今天吃猫`,
+			`吃我吧，我尽量忍住不出声`,
 		}...,
 		)
 	}
@@ -236,6 +237,7 @@ func tip(w int, c chance) string {
 			`该减肥了`,
 			`压猫猫！`,
 			`请勿给猪染色`,
+			`好重！炸弹带太多了吗……`,
 			`生存还是毁灭，你别无选择。`,
 			`该毁灭了，猫堆。`,
 			`让猫堆感受痛楚！`,
@@ -251,6 +253,7 @@ func tip(w int, c chance) string {
 			`哪有猫猫天天摔！`,
 			`叠猫猫要笑着叠`,
 			`我这么可爱，还要受这么大委屈`,
+			`我从来没觉得叠猫猫开心过`,
 			`底座啊，我必偿还`,
 			`猫堆啊，我已归来`,
 			`床头叠上床尾摔
@@ -269,6 +272,7 @@ func tip(w int, c chance) string {
 它迎着朝阳绽放，
 向我低语呢喃……`,
 			`你不要过来呀！`,
+			`你不准加入叠猫猫`,
 			`别让我掉下去，别让我掉下去～`,
 			`菜，就多叠
 摔不起，就别叠
@@ -451,6 +455,19 @@ func tip(w int, c chance) string {
 			`别以为我不在，我随时都在`,
 			`让大家做一个好梦吧`,
 			`请允许我讲一个故事吧`,
+			`可是我没有那么喜欢你诶`,
+			`你从来不是孤独一人`,
+			`喜欢什么就努力去成为什么`,
+			`这样会比较可爱吧`,
+			`还是她更温暖一些呢`,
+			`咱也没什么坏心思`,
+			`不如来这里坐坐吧`,
+			`舔舔，舔舔`,
+			`吹着风的心情是天蓝色`,
+			`快夸我快夸我`,
+			`棒棒糖，归我啦`,
+			`请务必打起精神来`,
+			`可以再等一等吗`,
 		}...,
 		)
 	}

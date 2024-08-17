@@ -88,6 +88,7 @@ var (
 		{cat: `压`, gpu: `超`},
 		{cat: `摔`, gpu: `掉`},
 		{cat: `床头叠上床尾摔`, gpu: `核心超上显存崩`},
+		{cat: `锻炼`, fox: `化功`, gpu: `加速`, cockroach: `起飞`},
 	}
 	// 字符替换器
 	l10nReplacer = func(l loc) *strings.Replacer {

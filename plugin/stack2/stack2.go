@@ -2,6 +2,8 @@
 package stack2
 
 import (
+	"cmp"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
@@ -17,24 +19,29 @@ import (
 )
 
 const (
-	replyServiceName           = `stack2` // 插件名
-	brief                      = `一起来玩叠猫猫 v2`
-	dataFile                   = `data.yaml` // 叠猫猫数据文件
-	cStack, cStackT0, cStackT1 = `叠`, `曡`, `疊`
-	cMeow                      = `猫猫`
-	cIn                        = `加入`
-	cView                      = `查看`
-	cAnalysis                  = `分析`
-	cRank                      = `排行`
-	cEat                       = `吃`
-	cEatGPU                    = `抢`
-	zako                       = `杂鱼.png`
+	replyServiceName                     = `stack2` // 插件名
+	brief                                = `一起来玩叠猫猫 v2`
+	dataFile                             = `data.yaml` // 叠猫猫数据文件
+	cStack, cStackT0, cStackT1           = `叠`, `曡`, `疊`
+	cMeow                                = `猫猫`
+	cIn                                  = `加入`
+	cView                                = `查看`
+	cAnalysis                            = `分析`
+	cRank                                = `排行`
+	cOCCat, cOCFox, cOCGPU, cOCCockroach = `锻炼`, `化功`, `加速`, `起飞`
+	cEat                                 = `吃`
+	cEatGPU                              = `抢`
+	zako                                 = `杂鱼.png`
 )
 
 var (
 	// 全局上下文，仅用于猫猫的 String() 方法
 	globalCtx *zero.Ctx
-	// 可导出的读写锁，用于叠猫猫文件的并发安全
+	// 当前猫池中位数重量（0.1 kg 数）
+	medianWeight int
+	// 最大休息时间
+	maxRestTime time.Duration
+	// Mu 可导出的读写锁，用于叠猫猫文件的并发安全
 	Mu sync.Mutex
 )
 
@@ -71,11 +78,11 @@ func setGlobalLocation(s string) bool {
 		globalLocation = gpu // 显卡
 		return true
 	case strings.ContainsAny(s, `蟑螂`),
-		strings.Contains(s, `小强`),
-		strings.Contains(s, `大蠊`):
+		strings.ContainsAny(s, `蜚蠊`),
+		strings.Contains(s, `小强`):
 		globalLocation = cockroach // 蟑螂
 		return checkCockroachDate()
-	case strings.ContainsAny(s, `猫虎`):
+	case strings.ContainsAny(s, `猫虎喵貓`):
 		fallthrough // 猫猫
 	default:
 		globalLocation = cat // 默认叠猫猫
@@ -85,16 +92,13 @@ func setGlobalLocation(s string) bool {
 
 // 叠猫猫执行逻辑
 func stackExe(ctx *zero.Ctx) {
-	args := slices.DeleteFunc(strings.Split(kitten.GetArgs(ctx), ` `),
-		func(s string) bool {
-			return `` == s
-		})
+	args := kitten.GetArgsSlice(ctx)
 	if 2 != len(args) {
 		kitten.SendWithImageFailOf(ctx, `本命令参数数量：2
 %s%s%s %s|%s|%s|%s
 传入的参数数量：%d
 参数数量错误，请用半角空格隔开各参数喵！`,
-			p, cStack, cMeow, cIn, cView, cAnalysis, cRank,
+			botConfig.CommandPrefix, cStack, cMeow, cIn, cView, cAnalysis, cRank,
 			len(args))
 		return
 	}
@@ -111,27 +115,46 @@ func stackExe(ctx *zero.Ctx) {
 		sendWithImageFail(ctx, `加载叠猫猫数据文件时发生错误喵！`, err)
 		return
 	}
+	// 计算猫池中位数重量
+	d.median()
+	// 计算最大休息时间
+	maxRest()
 	switch args[1] {
 	case cIn:
 		d.in(ctx)
-		if !selfEat(ctx, d, p) {
-			core.RandomDelay(time.Second)
-			selfIn(ctx, d, p)
+		if selfEat(ctx, d) {
+			return
 		}
+		if selfIn(ctx, d) {
+			return
+		}
+		selfOC(ctx, d)
 	case cView:
 		d.view(ctx, zero.UserOrGrpAdmin(ctx))
 		core.RandomDelay(time.Second)
 		d.viewImage(ctx)
-		if !selfEat(ctx, d, p) {
-			core.RandomDelay(time.Second)
-			selfIn(ctx, d, p)
+		if selfEat(ctx, d) {
+			return
 		}
+		if selfIn(ctx, d) {
+			return
+		}
+		selfOC(ctx, d)
 	case cAnalysis:
 		d.analysis(ctx)
-		selfAnalysis(ctx, d, p)
+		selfAnalysis(ctx, d)
 	case cRank:
 		d.rank(ctx)
-		selfRank(ctx, d, p)
+		selfRank(ctx, d)
+	case cOCCat, cOCFox, cOCGPU, cOCCockroach:
+		d.oc(ctx)
+		if selfEat(ctx, d) {
+			return
+		}
+		if selfIn(ctx, d) {
+			return
+		}
+		selfOC(ctx, d)
 	default:
 		var (
 			u    = ctx.Event.UserID
@@ -154,12 +177,13 @@ func stackExe(ctx *zero.Ctx) {
 			fmt.Sprintf(` %.2f%% `, 100*chanceFlat(k)),
 			`N(0, 体重²)`,
 			fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
-				time.Hour*time.Duration(stackConfig.GapTime*w)/10)),
+				time.Hour*time.Duration(stackConfig.RestHoursPerKG*w)/10)),
 			`N(0, (e*体重)²)`,
 			fmt.Sprintf(`N(0, (%s)²)`, core.ConvertTimeDuration(
-				time.Duration(float64(stackConfig.GapTime)*float64(time.Hour)*math.E*itof(w)))),
-		).Replace(strings.Join(helpText, `
-`)))
+				time.Duration(float64(stackConfig.RestHoursPerKG)*float64(time.Hour)*math.E*itof(w)))),
+			`[最大休息时间]`,
+			core.ConvertTimeDuration(maxRestTime).String(),
+		).Replace(strings.Join(helpText, "\n\n")))
 	}
 }
 
@@ -174,15 +198,16 @@ func (d *data) pre(ctx *zero.Ctx) (meow, error) {
 	var (
 		u = ctx.Event.UserID // 叠入猫猫的 QQ
 		w int                // 叠入猫猫的体重
-		b time.Duration      // 剩余的休息时间
+		i int                // 叠入猫猫的下标
+		r time.Duration      // 剩余的休息时间
 	)
-	if slices.ContainsFunc(*d, func(k meow) bool {
-		b = k.Time.Sub(time.Unix(ctx.Event.Time, 0))
+	if i = slices.IndexFunc(*d, func(k meow) bool {
+		r = k.Time.Sub(time.Unix(ctx.Event.Time, 0))
 		w = k.Weight
-		return u == k.Int() && !k.Status && 0 < b
-	}) {
-		err := needRest(b, w)
-		if sid.Int() == u {
+		return u == k.Int() && !k.Status && 0 < r
+	}); 0 <= i {
+		err := needRest(r, w, i)
+		if ctx.Event.SelfID == u {
 			kitten.Weight = w
 			return meow{}, err
 		}
@@ -191,7 +216,7 @@ func (d *data) pre(ctx *zero.Ctx) (meow, error) {
 	}
 	if slices.ContainsFunc(*d, func(k meow) bool { return u == k.Int() && k.Status }) {
 		err := alreadyJoined()
-		if sid.Int() == u {
+		if ctx.Event.SelfID == u {
 			kitten.Weight = w
 			return meow{}, err
 		}
@@ -199,9 +224,8 @@ func (d *data) pre(ctx *zero.Ctx) (meow, error) {
 		return meow{}, err
 	}
 	var (
-		qq   = kitten.QQ(u)                // 叠入的猫猫 QQ
-		name = qq.TitleCardOrNickName(ctx) // 叠入的猫猫名称
-		i    int                           // 叠入的猫猫下标
+		qq   = kitten.QQ(u)                // 叠入猫猫的 QQ
+		name = qq.TitleCardOrNickName(ctx) // 叠入猫猫的名称
 	)
 	k, i := d.getMeow(u) // 获取叠入的猫猫及其下标，如果不用于叠入，则需要克隆切片
 	if -1 == i {
@@ -310,6 +334,8 @@ func (d *data) in(ctx *zero.Ctx) error {
 	e := d.doStack(ctx, &k)
 	// 合并当前未叠猫猫与叠猫猫的队列，将叠入的猫猫追加入切片中
 	*d = slices.Concat(dn, *d, data{k})
+	// 清理过期玩家
+	d.clear(ctx)
 	// 存储叠猫猫数据
 	if err := core.Save(dataPath, d); nil != err {
 		sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)
@@ -402,7 +428,7 @@ func (d *data) Str() string {
 	return s.String()
 }
 
-// 获取全队列的总重量（0.1kg 数）
+// 获取全队列的总重量（0.1 kg 数）
 func (d *data) totalWeight() (w int) {
 	for _, k := range *d {
 		if core.MaxInt-k.Weight < w {
@@ -511,13 +537,13 @@ func (d *data) fallResult(ctx *zero.Ctx, k meow) int {
 /*
 去除退出的猫猫 k，并使其进入休息，然后调整体重
 
-t 为退出原因，h 为 摔下去的高度 | 压坏的猫猫总数 | 上方的猫猫总数 | 吃掉的猫猫总重量（0.1kg 数）
+t 为退出原因，h 为 摔下去的高度 | 压坏的猫猫总数 | 上方的猫猫总数 | 吃掉的猫猫总重量（0.1 kg 数）
 */
 func exit(ctx *zero.Ctx, k *meow, t result, h int) {
 	// 去除
 	k.Status = false
-	// 计算休息时间
-	r := float64(time.Hour) * float64(stackConfig.GapTime) * normal(itof(k.Weight))
+	// 计算休息时间（纳秒）
+	r := float64(time.Hour) * float64(stackConfig.RestHoursPerKG) * normal(itof(k.Weight))
 	// 体重变化
 	switch t {
 	case flat:
@@ -533,7 +559,7 @@ func exit(ctx *zero.Ctx, k *meow, t result, h int) {
 	case eat:
 		// 吃猫猫的休息时间为 e 倍
 		r *= math.E
-		// 吃猫猫，体重 + 吃掉的猫猫总重量（0.1kg 数）
+		// 吃猫猫，体重 + 吃掉的猫猫总重量（0.1 kg 数）
 		fallthrough
 	case press, pressed:
 		// 压坏了猫猫，体重 + 100g × 压坏的猫猫总数
@@ -542,10 +568,9 @@ func exit(ctx *zero.Ctx, k *meow, t result, h int) {
 	}
 	// 被老虎吃掉，体重不变
 	// 进入休息
-	k.Time = time.Unix(ctx.Event.Time, 0).Add(max(
-		time.Hour*time.Duration(stackConfig.MinGapTime),
-		time.Duration(r)),
-	)
+	mrh := time.Hour * time.Duration(stackConfig.MinRestHours)
+	k.Time = time.Unix(ctx.Event.Time, 0).
+		Add(min(maxRestTime, max(mrh, time.Duration(r))))
 }
 
 // 清空猫堆的体重调整
@@ -557,4 +582,122 @@ func clear(k *meow) bool {
 	w := int(math.RoundToEven(math.E * float64(k.Weight)))
 	k.Weight = max(w, -(1 + w))
 	return true
+}
+
+// 加速叠猫猫
+func (d *data) oc(ctx *zero.Ctx) {
+	var (
+		_, err = d.pre(ctx)        // 初始化自身
+		nre    = needRest(0, 0, 0) // 默认错误：需要休息
+	)
+	core.RandomDelay(time.Second)
+	if !errors.As(err, &nre) {
+		// 如果当前不在休息，不需要加速，直接返回
+		return
+	}
+	nre = err.(*needRestErr) // 需要休息
+	if 大老虎 > (*d)[nre.i].getTypeID(ctx) {
+		// 如果不是大老虎，不能加速
+		sendWithImageFail(ctx, `大老虎才可以锻炼——`)
+		return
+	}
+	var (
+		omrt  = time.Hour * time.Duration(stackConfig.OCMinRestHours)           // 最小休息时间
+		hours = int(math.RoundToEven(float64(nre.t-omrt) / float64(time.Hour))) // 加速的小时数
+	)
+	if 0 >= hours {
+		// 如果加速的小时数不大于 0，则不能加速
+		sendWithImageFail(ctx, `剩余休息时间过短，不能锻炼喵！`)
+		return
+	}
+	if (*d)[nre.i].Weight-hours < 1 {
+		// 如果体重不足，则不能加速
+		sendWithImageFail(ctx, `猫猫体重不足，锻炼失败喵！`)
+		return
+	}
+	// 加速的代价
+	(*d)[nre.i].Weight -= hours
+	// 执行加速
+	(*d)[nre.i].Time = (*d)[nre.i].Time.Add(time.Hour * time.Duration(-hours))
+	// 付出加速代价后的猫猫
+	after := (*d)[nre.i]
+	// 清理过期玩家
+	d.clear(ctx)
+	// 存储叠猫猫数据
+	if err := core.Save(dataPath, d); nil != err {
+		sendWithImageFail(ctx, `存储叠猫猫数据时发生错误喵！`, err)
+	}
+	sendTextOf(ctx, true, `锻炼成功喵！
+你剩余的休息时间变为 %s喵！
+你的体重减少至 %.1f kg 喵！`,
+		core.ConvertTimeDuration(after.Time.Sub(time.Unix(ctx.Event.Time, 0))),
+		itof(after.Weight),
+	)
+}
+
+// 清理过期玩家，范围为休息完毕的绒布球，以及超期的奶猫
+func (d *data) clear(ctx *zero.Ctx) {
+	var del int // 删除的猫猫数量
+	for i := range *d {
+		(*d)[i-del] = (*d)[i] // 移动猫猫以填充删除后的空隙
+		if (*d)[i].Status {
+			// 如果在叠猫猫中，不处理
+			continue
+		}
+		if (绒布球 == (*d)[i].getTypeID(ctx) && /* 如果是绒布球，且不在休息 */
+			(*d)[i].Time.Before(time.Unix(ctx.Event.Time, 0))) ||
+			(奶猫 == (*d)[i].getTypeID(ctx) && /* 如果是奶猫，且已经超期 */
+				(*d)[i].Time.Add(maxRestTime).Before(time.Unix(ctx.Event.Time, 0))) {
+			del++ // 执行清理
+			continue
+		}
+		if maxRestTime < (*d)[i].Time.Sub(time.Unix(ctx.Event.Time, 0)) {
+			// 如果猫猫剩余的休息时间大于当前上限，缩短至上限
+			(*d)[i].Time = time.Unix(ctx.Event.Time, 0).Add(maxRestTime)
+		}
+	}
+	*d = (*d)[:len(*d)-del] // 清除掉经过移动后失效的猫猫
+}
+
+// // 清理过期玩家，范围为休息完毕的绒布球，以及超期的奶猫
+// func (d *data) clear(ctx *zero.Ctx) {
+// 	*d = slices.DeleteFunc(*d, func(k meow) bool {
+// 		if k.Status {
+// 			// 如果在叠猫猫中，不处理
+// 			return false
+// 		}
+// 		if 绒布球 == k.getTypeID(ctx) && k.Time.Before(time.Unix(ctx.Event.Time, 0)) {
+// 			// 如果是绒布球，且不在休息，执行清理
+// 			return true
+// 		}
+// 		if 奶猫 == k.getTypeID(ctx) && k.Time.Add(maxRestTime).Before(
+// 			time.Unix(ctx.Event.Time, 0)) {
+// 			// 如果是奶猫，且已经超期，执行清理
+// 			return true
+// 		}
+// 		if maxRestTime < k.Time.Sub(time.Unix(ctx.Event.Time, 0)) {
+// 			// 如果猫猫剩余的休息时间大于当前上限，缩短至上限
+// 			k.Time = time.Unix(ctx.Event.Time, 0).Add(maxRestTime)
+// 		}
+// 		return false
+// 	})
+// }
+
+// 计算猫池中位数重量
+func (d *data) median() {
+	l := len(*d) // 猫池容量
+	if 0 == l {
+		medianWeight = 0
+		return
+	}
+	w := slices.Clone(*d) // 按猫猫重量排序
+	slices.SortStableFunc(w, func(i, j meow) int {
+		// 克隆一份防止修改原始数据
+		return cmp.Compare(i.Weight, j.Weight)
+	})
+	if 0 != l%2 {
+		medianWeight = w[l/2].Weight
+		return
+	}
+	medianWeight = (w[l/2-1].Weight + w[l/2].Weight) / 2
 }

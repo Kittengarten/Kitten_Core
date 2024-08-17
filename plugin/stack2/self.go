@@ -1,6 +1,7 @@
 package stack2
 
 import (
+	"errors"
 	"math"
 	"math/rand/v2"
 	"slices"
@@ -30,7 +31,7 @@ func (d *data) evaluate(ctx *zero.Ctx) float64 {
 		return 1
 	}
 	// 如果是非空队列
-	if float64(l) <= float64(k.Weight)*chanceFlat(k)*chanceClear(s, k, ctx)*(math.E-1) {
+	if float64(l) <= float64(k.Weight)*chanceFlat(k)*chanceClear(ctx, s, k)*(math.E-1) {
 		// 如果清空特效导致体重增加的期望不少于当前的猫堆高度，直接叠入
 		return 1
 	}
@@ -72,41 +73,41 @@ func (d *data) evaluate(ctx *zero.Ctx) float64 {
 }
 
 // 自动加入
-func selfIn(ctx *zero.Ctx, d data, p string) bool {
-	ctx.Event.UserID = sid.Int()
+func selfIn(ctx *zero.Ctx, d data) bool {
+	ctx.Event.UserID = ctx.Event.SelfID
 	if d.evaluate(ctx) <= rand.Float64() {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 加入
 		return false
 	}
 	core.RandomDelay(time.Second)
-	ctx.Send(p + cStack + cMeow + ` ` + cIn)
+	ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cIn)
 	core.RandomDelay(time.Second)
 	d.in(ctx)
 	return true
 }
 
 // 自动分析
-func selfAnalysis(ctx *zero.Ctx, d data, p string) {
-	ctx.Event.UserID = sid.Int()
+func selfAnalysis(ctx *zero.Ctx, d data) {
+	ctx.Event.UserID = ctx.Event.SelfID
 	if d.evaluate(ctx) <= rand.Float64() {
 		// 以评估的概率，触发喵喵使用 /叠猫猫 分析
 		return
 	}
 	core.RandomDelay(time.Second)
-	ctx.Send(p + cStack + cMeow + ` ` + cAnalysis)
+	ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cAnalysis)
 	core.RandomDelay(time.Second)
 	d.analysis(ctx)
 }
 
 // 自动排行
-func selfRank(ctx *zero.Ctx, d data, p string) {
-	ctx.Event.UserID = sid.Int()
+func selfRank(ctx *zero.Ctx, d data) {
+	ctx.Event.UserID = ctx.Event.SelfID
 	if 0.1 < rand.Float64() {
+		// 以 0.1 的概率，触发喵喵使用 /叠猫猫 排行
 		return
 	}
-	// 以 0.1 的概率，触发喵喵使用 /叠猫猫 排行
 	core.RandomDelay(time.Second)
-	ctx.Send(p + cStack + cMeow + ` ` + cRank)
+	ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cRank)
 	core.RandomDelay(time.Second)
 	d.rank(ctx)
 }
@@ -129,24 +130,66 @@ func (d *data) evaluateEat(ctx *zero.Ctx) float64 {
 		// 如果是空队列，什么也不做
 		return 0
 	}
-	// 如果是非空队列
-	if float64(s[l-1].Weight)*k.chanceFall(s[l-1]) > math.E*(math.E-1)*itof(mapMeow[抱枕].weight) {
-		// 吃猫猫期望大于平地摔或清空期望，则吃猫猫
-		return 1
-	}
-	return 0
+	// 如果是非空队列，吃猫猫的概率为期望占小老虎体重的比例 - 0.5
+	return float64(s[l-1].Weight)*k.chanceFall(s[l-1])/itof(mapMeow[猫娘少女].weight) - 0.5
 }
 
 // 自动吃猫猫
-func selfEat(ctx *zero.Ctx, d data, p string) bool {
-	ctx.Event.UserID = sid.Int()
+func selfEat(ctx *zero.Ctx, d data) bool {
+	ctx.Event.UserID = ctx.Event.SelfID
 	if d.evaluateEat(ctx) < rand.Float64() {
+		// 以评估的概率，触发喵喵使用 /吃猫猫
 		return false
 	}
-	// 以评估的概率，触发喵喵使用 /吃猫猫
 	core.RandomDelay(time.Second)
-	ctx.Send(p + cEat + cMeow)
+	ctx.Send(botConfig.CommandPrefix + cEat + cMeow)
 	core.RandomDelay(time.Second)
 	d.eat(ctx)
+	return true
+}
+
+// 评估加速，返回加速的权重作为概率
+func (d *data) evaluateOC(ctx *zero.Ctx) float64 {
+	var (
+		dr     = slices.Clone(*d)  // 克隆切片，防止对后续调用造成影响
+		_, err = dr.pre(ctx)       // 初始化自身
+		nre    = needRest(0, 0, 0) // 默认错误：需要休息
+	)
+	if !errors.As(err, &nre) {
+		// 如果当前不在休息，不需要加速，什么也不做
+		return 0
+	}
+	nre = err.(*needRestErr) // 需要休息
+	if 大老虎 > (*d)[nre.i].getTypeID(ctx) {
+		// 如果不是大老虎，不能加速，什么也不做
+		return 0
+	}
+	var (
+		omrt  = time.Hour * time.Duration(stackConfig.OCMinRestHours)           // 最小休息时间
+		hours = int(math.RoundToEven(float64(nre.t-omrt) / float64(time.Hour))) // 加速的小时数
+	)
+	if 0 >= hours {
+		// 如果加速的小时数不大于 0，则不能加速，什么也不做
+		return 0
+	}
+	if (*d)[nre.i].Weight-hours < 1 {
+		// 如果体重不足，则不能加速，什么也不做
+		return 0
+	}
+	// 加速的权重为 (ln(当前体重（0.1 kg 数） ÷ 加速的小时数) - e) ÷ e^e
+	return math.Log(float64((*d)[nre.i].Weight)/float64(hours)-math.E) / math.Pow(math.E, math.E)
+}
+
+// 自动加速
+func selfOC(ctx *zero.Ctx, d data) bool {
+	ctx.Event.UserID = ctx.Event.SelfID
+	if d.evaluateOC(ctx) < rand.Float64() {
+		// 以评估的概率，触发喵喵使用 /叠猫猫 锻炼
+		return false
+	}
+	core.RandomDelay(time.Second)
+	ctx.Send(botConfig.CommandPrefix + cStack + cMeow + ` ` + cOCCat)
+	core.RandomDelay(time.Second)
+	d.oc(ctx)
 	return true
 }

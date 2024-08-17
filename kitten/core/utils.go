@@ -7,16 +7,27 @@ import (
 	"time"
 	"unicode"
 
-	wr "github.com/mroth/weightedrand/v2"
+	"github.com/Kittengarten/KittenCore/internal/wr"
 )
 
 type (
-	// Choicers 是由随机项目的抽象接口组成的切片
-	Choicers []interface {
+	// Choicer 随机项目的抽象接口
+	Choicer interface {
 		GetID() int             // 该项目的 ID
 		GetInformation() string // 该项目的信息
-		GetChance() int         // 该项目的权重
 	}
+
+	// ChoicerW 带权重的随机项目的抽象接口
+	ChoicerW interface {
+		Choicer
+		GetWeight() int // 该项目的权重
+	}
+
+	// Choicers 由随机项目的抽象接口组成的切片
+	Choicers []Choicer
+
+	// ChoicersW 由带权重的随机项目的抽象接口组成的切片
+	ChoicersW []ChoicerW
 
 	// TimeDuration 表示时间间隔的结构体
 	TimeDuration struct {
@@ -25,10 +36,10 @@ type (
 )
 
 // Choose 按权重抽取一个项目的序号
-func (c Choicers) Choose() (int, error) {
+func (c ChoicersW) Choose() (int, error) {
 	choices := make([]wr.Choice[int, int], len(c), len(c))
 	for i, ch := range c {
-		item, weight := ch.GetID(), ch.GetChance()
+		item, weight := ch.GetID(), ch.GetWeight()
 		choices[i] = wr.Choice[int, int]{Item: item, Weight: weight}
 	}
 	chooser, err := wr.NewChooser(choices...)

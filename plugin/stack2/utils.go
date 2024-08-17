@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"time"
 
 	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
+
+// 计算最大休息时间
+func maxRest() {
+	maxRestTime = core.HoursPerDay * time.Hour * time.Duration(stackConfig.MinRestHours*medianWeight)
+}
 
 // 获取平地摔或特效的概率
 func chanceFlat(k meow) float64 {

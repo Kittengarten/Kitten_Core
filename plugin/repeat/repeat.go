@@ -5,9 +5,7 @@ import (
 	"html"
 	"math/rand/v2"
 	"reflect"
-	"slices"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/Kittengarten/KittenCore/kitten"
@@ -87,10 +85,7 @@ func repeatInit() {
 
 // 复读设置
 func repeatSet(ctx *zero.Ctx) {
-	args := slices.DeleteFunc(strings.Split(kitten.GetArgs(ctx), ` `),
-		func(s string) bool {
-			return `` == s
-		})
+	args := kitten.GetArgsSlice(ctx)
 	if 2 != len(args) {
 		kitten.SendWithImageFailOf(ctx, `本命令参数数量：%d
 传入的参数数量：%d`,

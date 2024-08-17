@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Kittengarten/KittenCore/kitten"
 	"github.com/Kittengarten/KittenCore/kitten/core"
 
 	"github.com/RomiChan/syncx"
@@ -23,17 +24,17 @@ func setCard(ctx *zero.Ctx, h int) {
 	// 如果群距上次活跃时间大于一天，则删除
 	active.Range(func(g int64, t time.Time) bool {
 		if core.HoursPerDay*time.Hour < time.Since(t) {
-			ctx.SetGroupCard(g, sid.Int(), card(ctx, -1))
+			ctx.SetGroupCard(g, ctx.Event.SelfID, card(ctx, -1))
 			active.Delete(g)
 			return true
 		}
-		ctx.SetGroupCard(g, sid.Int(), card(ctx, h))
+		ctx.SetGroupCard(g, ctx.Event.SelfID, card(ctx, h))
 		return true
 	})
 }
 
 func card(ctx *zero.Ctx, h int) string {
-	switch cmp.Compare(0, h) {
+	switch sid := kitten.QQ(ctx.Event.SelfID); cmp.Compare(0, h) {
 	case -1:
 		return fmt.Sprintf(`%s（%d岁）（猫堆高度：%d）`, botConfig.NickName[0], sid.Age(ctx), h)
 	case 0:

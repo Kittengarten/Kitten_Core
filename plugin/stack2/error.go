@@ -17,6 +17,7 @@ type (
 	needRestErr struct {
 		t time.Duration // 剩余的休息时间
 		w int           // 叠入猫猫的体重
+		i int           // 叠入猫猫的下标
 	}
 
 	// 叠猫猫失败
@@ -49,10 +50,11 @@ func (e *needRestErr) Error() string {
 }
 
 // *needRest 的构造函数，需要休息
-func needRest(t time.Duration, w int) *needRestErr {
+func needRest(t time.Duration, w, i int) *needRestErr {
 	return &needRestErr{
 		t: t,
 		w: w,
+		i: i,
 	}
 }
 

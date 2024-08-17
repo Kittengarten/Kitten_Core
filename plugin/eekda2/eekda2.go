@@ -55,7 +55,7 @@ var (
 func init() {
 	// XX 今天吃什么
 	engine.OnSuffix(cEEKDA, zero.OnlyGroup).SetBlock(true).
-		Limit(kitten.GetLimiter(kitten.Group)).Handle(todayMeal)
+		Limit(kitten.GetLimiter(kitten.GroupNormal)).Handle(todayMeal)
 
 	// 查询被吃次数
 	engine.OnFullMatchGroup([]string{`查询被吃次数`, `查看被吃次数`}, zero.OnlyGroup).SetBlock(true).
@@ -153,6 +153,12 @@ func todayMeal(ctx *zero.Ctx) {
 		c[ci].Group = slices.DeleteFunc(c[ci].Group, func(groupID int64) bool {
 			return groupID == ctx.Event.GroupID
 		})
+		if 0 == len(c[ci].Group) {
+			// 如果该角色已经在所有群注销，删除该角色
+			c = slices.DeleteFunc(c, func(t today) bool {
+				return name == t.ID
+			})
+		}
 		// 写入文件
 		if err := core.Save(todayPath, c); nil != err {
 			kitten.SendWithImageFail(ctx, err)
@@ -168,7 +174,7 @@ func todayMeal(ctx *zero.Ctx) {
 			return
 		}
 		// 今天没有生成，执行生成
-		var list []gjson.Result
+		list := make([]gjson.Result, 0, 128)
 		// 获取该角色注册的所有群的群员列表
 		for _, v := range c[ci].Group {
 			list = append(list, kitten.MemberList(ctx, v).List...)
